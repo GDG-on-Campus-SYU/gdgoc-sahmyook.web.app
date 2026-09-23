@@ -5,4 +5,5 @@ out/
 !.env.example
 .firebase/
 firebase-debug.log*
+gha-creds-*.json
 *.tsbuildinfo

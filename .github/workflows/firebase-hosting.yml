@@ -62,3 +62,9 @@ jobs:
           projectId: ${{ vars.FIREBASE_PROJECT_ID }}
           channelId: ${{ github.event_name == 'push' && 'live' || format('pr-{0}', github.event.number) }}
           expires: 7d
+      - uses: google-github-actions/auth@v3
+        if: github.event_name == 'push'
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - run: pnpm dlx firebase-tools@15.30.2 deploy --only firestore:rules --project "${{ vars.FIREBASE_PROJECT_ID }}" --non-interactive
+        if: github.event_name == 'push'
