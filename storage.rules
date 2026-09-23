@@ -1,0 +1,18 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isEditor() {
+      return request.auth != null
+        && firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role in ['admin', 'editor'];
+    }
+
+    match /images/{folder}/{file} {
+      allow read: if folder in ['members', 'activities', 'projects', 'events'];
+      allow write: if folder in ['members', 'activities', 'projects', 'events']
+        && isEditor()
+        && request.resource.contentType.matches('image/.*')
+        && request.resource.size < 2 * 1024 * 1024;
+    }
+  }
+}

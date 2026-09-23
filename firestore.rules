@@ -1,0 +1,36 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isEditor() {
+      return request.auth != null
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'editor'];
+    }
+
+    match /users/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /members/{id} {
+      allow read: if resource.data.visible == true || isEditor();
+      allow write: if isEditor();
+    }
+
+    match /{collection}/{id} {
+      allow read: if collection in ['activities', 'projects', 'events']
+        && (resource.data.published == true || isEditor());
+      allow write: if collection in ['activities', 'projects', 'events'] && isEditor();
+    }
+
+    match /recruitment/{id} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+
+    match /generations/{id} {
+      allow read: if true;
+      allow write: if isEditor();
+    }
+  }
+}
