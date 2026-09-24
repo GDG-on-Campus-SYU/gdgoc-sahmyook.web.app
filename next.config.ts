@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
   turbopack: { root: process.cwd() },
   images: {
     unoptimized: true,
-    remotePatterns: [{ protocol: "https", hostname: "firebasestorage.googleapis.com" }],
+    remotePatterns: [{ protocol: "https", hostname: "github.com", pathname: "/*.png" }],
   },
   trailingSlash: true,
 };

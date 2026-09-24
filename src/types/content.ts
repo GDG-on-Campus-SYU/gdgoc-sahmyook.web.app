@@ -5,8 +5,6 @@ export type Activity = {
   summary: string;
   content?: string;
   category: string;
-  thumbnail?: string;
-  images?: string[];
   startDate?: string;
   endDate?: string;
   status: string;
@@ -27,7 +25,6 @@ export type Project = {
   problem?: string;
   solution?: string;
   result?: string;
-  thumbnail?: string;
   members?: string[];
   techStack?: string[];
   github?: string;
@@ -43,7 +40,6 @@ export type Member = {
   role: "Organizer" | "Team Member" | "Member";
   position?: string;
   generation?: string;
-  profileImage?: string;
   description?: string;
   github?: string;
   linkedin?: string;

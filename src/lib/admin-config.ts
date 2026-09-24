@@ -1,10 +1,9 @@
 export type AdminField = {
   name: string;
   label: string;
-  kind?: "text" | "url" | "textarea" | "date" | "number" | "checkbox" | "select" | "list" | "image";
+  kind?: "text" | "url" | "textarea" | "date" | "number" | "checkbox" | "select" | "list";
   required?: boolean;
   options?: string[];
-  maxSize?: number;
 };
 
 export type AdminCollection = {
@@ -24,7 +23,6 @@ export const adminCollections: AdminCollection[] = [
       { name: "summary", label: "요약", kind: "textarea", required: true },
       { name: "content", label: "본문", kind: "textarea" },
       { name: "category", label: "카테고리", kind: "select", required: true, options: ["Study", "Session", "Project", "Networking", "Hackathon", "Collaboration"] },
-      { name: "thumbnail", label: "대표 이미지", kind: "image", maxSize: 500_000 },
       { name: "startDate", label: "시작일", kind: "date" },
       { name: "endDate", label: "종료일", kind: "date" },
       { name: "status", label: "상태", kind: "select", options: ["예정", "진행 중", "종료"] },
@@ -43,7 +41,6 @@ export const adminCollections: AdminCollection[] = [
       { name: "problem", label: "Problem", kind: "textarea" },
       { name: "solution", label: "Solution", kind: "textarea" },
       { name: "result", label: "Result", kind: "textarea" },
-      { name: "thumbnail", label: "대표 이미지", kind: "image", maxSize: 500_000 },
       { name: "members", label: "참여 구성원 (한 줄에 한 명)", kind: "list" },
       { name: "techStack", label: "기술 스택 (한 줄에 하나)", kind: "list" },
       { name: "github", label: "GitHub URL", kind: "url" },
@@ -59,9 +56,8 @@ export const adminCollections: AdminCollection[] = [
       { name: "role", label: "역할", kind: "select", required: true, options: ["Organizer", "Team Member", "Member"] },
       { name: "position", label: "관심 분야 / 담당" },
       { name: "generation", label: "기수", required: true },
-      { name: "profileImage", label: "프로필 이미지", kind: "image", maxSize: 500_000 },
       { name: "description", label: "소개", kind: "textarea" },
-      { name: "github", label: "GitHub URL", kind: "url" },
+      { name: "github", label: "GitHub 프로필 URL", kind: "url" },
       { name: "linkedin", label: "LinkedIn URL", kind: "url" },
       { name: "website", label: "Website URL", kind: "url" },
       { name: "order", label: "표시 순서", kind: "number" },

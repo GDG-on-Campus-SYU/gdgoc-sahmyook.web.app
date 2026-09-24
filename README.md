@@ -1,6 +1,6 @@
 # GDGoC Sahmyook
 
-GDGoC Sahmyook의 공식 웹사이트이자 활동 아카이브입니다. Next.js App Router를 정적 export하고 Firebase Hosting, Firestore, Authentication, Storage를 사용합니다.
+GDGoC Sahmyook의 공식 웹사이트이자 활동 아카이브입니다. Next.js App Router를 정적 export하고 Firebase Hosting, Firestore, Authentication을 사용합니다.
 
 ## 로컬 실행
 
@@ -14,12 +14,12 @@ Firebase 값이 없을 때도 공개 페이지는 검증되지 않은 활동이�
 
 ## Firebase 설정
 
-1. Firebase Console에서 Web App, Firestore, Authentication의 Google Provider, Storage, Hosting을 활성화합니다.
+1. Firebase Console에서 Web App, Firestore, Authentication의 Google Provider, Hosting을 활성화합니다.
 2. `.env.local`에 `.env.example`의 공개 Web App 설정을 입력합니다.
 3. 최초 운영자는 Google 로그인 후 확인한 UID로 `users/{uid}` 문서를 만들고 `role`을 `admin` 또는 `editor`로 설정합니다.
-4. `firebase deploy --only firestore:rules,storage`로 보안 규칙을 배포합니다.
+4. `firebase deploy --only firestore:rules`로 보안 규칙을 배포합니다.
 
-공개 콘텐츠는 `published: true`, 구성원은 본인 동의 후 `visible: true`인 문서만 조회합니다. 이미지는 Admin 화면에서 업로드하며 대표 이미지와 프로필은 500KB, Storage Rules의 전체 상한은 2MB입니다.
+공개 콘텐츠는 `published: true`, 구성원은 본인 동의 후 `visible: true`인 문서만 조회합니다. 구성원 사진은 Admin에 등록한 공개 GitHub 프로필 URL의 아바타를 사용하며, 활동과 프로젝트는 별도 이미지를 업로드하지 않고 기본 그래픽을 표시합니다. 브랜드 이미지는 `public/brand`의 정적 파일입니다.
 
 ## 검증과 배포
 

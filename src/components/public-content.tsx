@@ -12,16 +12,8 @@ import type { Activity, Member, Project, Recruitment } from "@/types/content";
 const categories = ["All", "Study", "Session", "Project", "Networking", "Hackathon", "Collaboration"];
 const emptyMembers: Member[] = [];
 
-function Media({ src, alt, label }: { src?: string; alt: string; label: string }) {
-  const image = safeImage(src);
-  return image ? (
-    <Image className="card-image" src={image} alt={alt} width={720} height={480} />
-  ) : (
-    <div className="card-image media-placeholder" aria-hidden="true">
-      <span>{label.slice(0, 1)}</span>
-      <i />
-    </div>
-  );
+function Media({ label }: { label: string }) {
+  return <div className="card-image media-placeholder" aria-hidden="true"><span>{label.slice(0, 1)}</span><i /></div>;
 }
 
 export function ActivityCollection({ compact = false }: { compact?: boolean }) {
@@ -49,7 +41,7 @@ export function ActivityCollection({ compact = false }: { compact?: boolean }) {
         <div className="activity-grid">
           {visibleItems.map((activity, index) => (
             <article className={`activity-card accent-${index % 4}`} key={activity.id}>
-              <Media src={activity.thumbnail} alt={`${activity.title} 대표 이미지`} label={activity.category} />
+              <Media label={activity.category} />
               <div className="card-body">
                 <div className="card-meta">
                   <span>{activity.category}</span>
@@ -85,7 +77,7 @@ export function ProjectCollection({ compact = false }: { compact?: boolean }) {
         {visibleItems.map((project, index) => (
           <article className="project-card" key={project.id}>
             <div className="project-visual">
-              <Media src={project.thumbnail} alt={`${project.title} 대표 이미지`} label={`0${index + 1}`} />
+              <Media label={`0${index + 1}`} />
             </div>
             <div className="project-copy">
               <p className="eyebrow">Project · {project.generation}</p>
@@ -118,10 +110,11 @@ export function PeopleCollection() {
   return (
     <div className="people-grid" aria-busy={loading}>
       {error && <p className="inline-notice" role="status">구성원 정보를 불러오지 못했습니다.</p>}
-      {sorted.map((member) => (
-        <article className="person-card" key={member.id}>
-          {safeImage(member.profileImage) ? (
-            <Image src={safeImage(member.profileImage)!} alt={`${member.name} 프로필`} width={160} height={160} />
+      {sorted.map((member) => {
+        const avatar = githubAvatarUrl(member.github);
+        return <article className="person-card" key={member.id}>
+          {avatar ? (
+            <Image src={avatar} alt={`${member.name} GitHub 프로필`} width={160} height={160} />
           ) : (
             <div className="avatar" aria-hidden="true">{member.name.slice(0, 1)}</div>
           )}
@@ -135,8 +128,8 @@ export function PeopleCollection() {
             {safeHref(member.linkedin) && <a href={safeHref(member.linkedin)!} target="_blank" rel="noreferrer">LinkedIn ↗</a>}
             {safeHref(member.website) && <a href={safeHref(member.website)!} target="_blank" rel="noreferrer">Website ↗</a>}
           </div>
-        </article>
-      ))}
+        </article>;
+      })}
     </div>
   );
 }
@@ -234,8 +227,7 @@ function safeHref(value?: string) {
   catch { return null; }
 }
 
-function safeImage(value?: string) {
-  if (!value) return null;
-  try { return new URL(value).hostname === "firebasestorage.googleapis.com" ? value : null; }
-  catch { return null; }
+function githubAvatarUrl(value?: string) {
+  const match = value?.match(/^https:\/\/(?:www\.)?github\.com\/([^/?#]+)\/?(?:[?#].*)?$/i);
+  return match ? `https://github.com/${encodeURIComponent(match[1])}.png?size=160` : null;
 }

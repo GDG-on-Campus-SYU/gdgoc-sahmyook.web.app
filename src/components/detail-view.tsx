@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { starterActivities, starterProjects } from "@/lib/starter-content";
@@ -28,7 +27,6 @@ export function ActivityDetail() {
           <div><dt>담당</dt><dd>{activity.host || "추후 안내"}</dd></div>
         </dl>
       </header>
-      {safeImage(activity.thumbnail) && <Image className="detail-cover" src={safeImage(activity.thumbnail)!} alt={`${activity.title} 대표 이미지`} width={1240} height={760} />}
       <div className="detail-content">
         <p>{activity.content || (activity.placeholder ? "공식 활동 자료를 확인한 뒤 내용을 공개합니다." : activity.summary)}</p>
         {Boolean(activity.links?.length) && <LinkList links={activity.links!} />}
@@ -58,7 +56,6 @@ export function ProjectDetail() {
         <p>{project.summary}</p>
         {Boolean(project.techStack?.length) && <ul className="tag-list">{project.techStack?.map((item) => <li key={item}>{item}</li>)}</ul>}
       </header>
-      {safeImage(project.thumbnail) && <Image className="detail-cover" src={safeImage(project.thumbnail)!} alt={`${project.title} 대표 이미지`} width={1240} height={760} />}
       <div className="detail-content">
         {sections.length ? sections.map(([title, value]) => <section key={title}><h2>{title}</h2><p>{value}</p></section>) : <p>검증된 프로젝트 자료를 정리한 뒤 공개합니다.</p>}
         <div className="detail-actions">
@@ -89,11 +86,5 @@ function track(event: string) {
 function safeHref(value?: string) {
   if (!value) return null;
   try { return ["http:", "https:"].includes(new URL(value).protocol) ? value : null; }
-  catch { return null; }
-}
-
-function safeImage(value?: string) {
-  if (!value) return null;
-  try { return new URL(value).hostname === "firebasestorage.googleapis.com" ? value : null; }
   catch { return null; }
 }
