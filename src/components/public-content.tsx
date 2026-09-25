@@ -30,7 +30,7 @@ export function ActivityCollection({ compact = false }: { compact?: boolean }) {
       {!compact && (
         <div className="filter-row" role="group" aria-label="활동 카테고리 필터">
           {categories.map((item) => (
-            <button key={item} className={category === item ? "active" : ""} onClick={() => setCategory(item)}>
+            <button key={item} className={category === item ? "active" : ""} aria-pressed={category === item} onClick={() => setCategory(item)}>
               {item}
             </button>
           ))}
@@ -136,6 +136,7 @@ export function PeopleCollection() {
 
 export function RecruitmentPanel({ compact = false }: { compact?: boolean }) {
   const [recruitment, setRecruitment] = useState<Recruitment>(starterRecruitment);
+  const Heading = compact ? "h2" : "h1";
 
   useEffect(() => {
     if (!db) return;
@@ -155,7 +156,7 @@ export function RecruitmentPanel({ compact = false }: { compact?: boolean }) {
       <div>
         <span className={`status-badge status-${recruitment.status}`}>{status[0]}</span>
         <p className="eyebrow">{recruitment.id}</p>
-        <h2>{recruitment.title}</h2>
+        <Heading>{recruitment.title}</Heading>
         <p>{recruitment.description}</p>
         {(recruitment.startDate || recruitment.endDate) && (
           <p className="recruitment-date">{recruitment.startDate} — {recruitment.endDate}</p>

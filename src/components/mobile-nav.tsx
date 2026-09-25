@@ -7,7 +7,15 @@ export function MobileNav({ items }: { items: ReadonlyArray<readonly [string, st
   const menu = useRef<HTMLDetailsElement>(null);
 
   return (
-    <details className="mobile-nav" ref={menu}>
+    <details
+      className="mobile-nav"
+      ref={menu}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape") return;
+        menu.current?.removeAttribute("open");
+        menu.current?.querySelector<HTMLElement>("summary")?.focus();
+      }}
+    >
       <summary aria-label="메뉴 열기 또는 닫기">
         <span />
         <span />

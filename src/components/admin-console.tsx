@@ -92,7 +92,7 @@ function Editor({ user, role }: { user: User; role: string }) {
         </nav>
         <div className="admin-user"><span>{user.email}</span><small>{role}</small><button onClick={() => auth && signOut(auth)}>로그아웃</button></div>
       </aside>
-      <main className="admin-main"><CollectionEditor key={active.name} config={active} /></main>
+      <div className="admin-main"><CollectionEditor key={active.name} config={active} /></div>
     </div>
   );
 }
