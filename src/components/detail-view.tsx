@@ -26,6 +26,7 @@ export function ActivityDetail() {
           <div><dt>기간</dt><dd>{activity.startDate || "추후 안내"}{activity.endDate && ` — ${activity.endDate}`}</dd></div>
           <div><dt>기수</dt><dd>{activity.generation || "미정"}</dd></div>
           <div><dt>담당</dt><dd>{activity.host || "추후 안내"}</dd></div>
+          {activity.participants && <div><dt>참여 인원</dt><dd>{activity.participants}</dd></div>}
         </dl>
       </header>
       <div className="detail-content">
@@ -60,6 +61,7 @@ export function ProjectDetail() {
       </header>
       <div className="detail-content">
         {sections.length ? sections.map(([title, value]) => <section key={title}><h2>{title}</h2><p>{value}</p></section>) : <p>검증된 프로젝트 자료를 정리한 뒤 공개합니다.</p>}
+        {Boolean(project.members?.length) && <section><h2>Team</h2><ul className="tag-list" aria-label="프로젝트 참여 구성원">{project.members?.map((member) => <li key={member}>{member}</li>)}</ul></section>}
         <div className="detail-actions">
           {safeHref(project.github) && <a className="button" href={safeHref(project.github)!} target="_blank" rel="noreferrer" onClick={() => track("project_github_click")}>GitHub ↗</a>}
           {safeHref(project.demo) && <a className="button button-secondary" href={safeHref(project.demo)!} target="_blank" rel="noreferrer">Live demo ↗</a>}

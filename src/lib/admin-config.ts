@@ -28,6 +28,7 @@ export const adminCollections: AdminCollection[] = [
       { name: "status", label: "상태", kind: "select", options: ["예정", "진행 중", "종료"] },
       { name: "generation", label: "기수", required: true },
       { name: "host", label: "담당자" },
+      { name: "participants", label: "참여 인원" },
       { name: "links", label: "관련 링크 (한 줄에 하나)", kind: "list" },
       { name: "published", label: "공개", kind: "checkbox" },
     ],

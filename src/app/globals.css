@@ -238,7 +238,7 @@ h3 { font-size: clamp(1.35rem, 2vw, 1.75rem); }
 .detail-header > p:not(.eyebrow) { max-width: 760px; color: var(--muted); font-size: 1.2rem; }
 .detail-header .tag-list { margin-top: 28px; }
 .detail-header .card-meta { max-width: 360px; }
-.detail-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin: 48px 0 0; border-top: 1px solid var(--line); padding-top: 20px; }
+.detail-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 24px; margin: 48px 0 0; border-top: 1px solid var(--line); padding-top: 20px; }
 .detail-meta dt { margin-bottom: 6px; color: var(--muted); font-size: .72rem; font-weight: 780; letter-spacing: .08em; text-transform: uppercase; }
 .detail-meta dd { margin: 0; font-weight: 680; }
 .detail-cover { width: 100%; max-height: 760px; margin-bottom: 64px; border-radius: var(--radius-lg); object-fit: cover; }
