@@ -179,10 +179,11 @@ function CollectionEditor({ config }: { config: AdminCollection }) {
 function EditorForm({ config, document, onCancel, onSaved }: { config: AdminCollection; document: DocumentRecord | null; onCancel: () => void; onSaved: () => void }) {
   const { generation, error: generationError, loading: generationLoading } = useCurrentGeneration();
   const isCurrentRecruitment = config.name === "recruitment" && !document;
+  const isSlugDocument = !document && (config.name === "activities" || config.name === "projects");
   const generationUnavailable = isCurrentRecruitment && (generationLoading || generationError);
   const [customDocumentId, setCustomDocumentId] = useState(document?.id || "");
-  const documentId = isCurrentRecruitment ? generation.generationId : customDocumentId;
   const [values, setValues] = useState<FormValues>(() => Object.fromEntries(config.fields.map((field) => [field.name, initialValue(field, document?.[field.name])] )));
+  const documentId = isCurrentRecruitment ? generation.generationId : isSlugDocument ? String(values.slug || "").trim() : customDocumentId;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -193,6 +194,10 @@ function EditorForm({ config, document, onCancel, onSaved }: { config: AdminColl
     if (!db) return;
     if (generationUnavailable) {
       setError("현재 기수를 확인하지 못해 저장할 수 없습니다. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
+    if (isSlugDocument && !/^[A-Za-z0-9가-힣_-]+$/.test(documentId)) {
+      setError("Slug는 영문, 숫자, 한글, 하이픈(-), 밑줄(_)만 사용할 수 있습니다.");
       return;
     }
     setSaving(true);
@@ -206,7 +211,15 @@ function EditorForm({ config, document, onCancel, onSaved }: { config: AdminColl
     const payload = Object.fromEntries(config.fields.map((field) => [field.name, serializeValue(field, values[field.name]) ]));
     try {
       if (document) await setDoc(doc(db, config.name, document.id), { ...payload, updatedAt: serverTimestamp() }, { merge: true });
-      else if (documentId.trim()) await setDoc(doc(db, config.name, documentId.trim()), { ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+      else if (documentId.trim()) {
+        const target = doc(db, config.name, documentId.trim());
+        if ((await getDoc(target)).exists()) {
+          setError("같은 문서 ID가 이미 있습니다. 기존 항목을 수정해 주세요.");
+          setSaving(false);
+          return;
+        }
+        await setDoc(target, { ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+      }
       else await addDoc(collection(db, config.name), { ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
       onSaved();
     } catch { setError("저장하지 못했습니다. 입력값과 Firestore 권한을 확인해 주세요."); setSaving(false); }
@@ -215,10 +228,10 @@ function EditorForm({ config, document, onCancel, onSaved }: { config: AdminColl
   return (
     <form className="admin-form" onSubmit={save}>
       <div className="form-heading"><div><p className="eyebrow">{document ? "Edit" : "New"}</p><h2>{document ? String(document[config.titleField]) : `새 ${config.singular}`}</h2></div><button type="button" onClick={onCancel}>닫기</button></div>
-      {!document && <label className="field"><span>문서 ID <small>{isCurrentRecruitment ? generationLoading ? "현재 기수 확인 중" : generationError ? "현재 기수 조회 실패" : "현재 기수 기준" : "비워두면 자동 생성"}</small></span><input value={documentId} onChange={(event) => setCustomDocumentId(event.target.value)} pattern="[A-Za-z0-9가-힣_-]*" readOnly={isCurrentRecruitment} required={isCurrentRecruitment} /></label>}
+      {!document && <label className="field"><span>문서 ID <small>{isCurrentRecruitment ? generationLoading ? "현재 기수 확인 중" : generationError ? "현재 기수 조회 실패" : "현재 기수 기준" : isSlugDocument ? "Slug에서 자동 생성" : "비워두면 자동 생성"}</small></span><input value={documentId} onChange={(event) => setCustomDocumentId(event.target.value)} pattern="[A-Za-z0-9가-힣_-]*" readOnly={isCurrentRecruitment || isSlugDocument} required={isCurrentRecruitment || isSlugDocument} /></label>}
       {isCurrentRecruitment && generationError && <p className="form-error" role="alert">현재 기수를 불러오지 못했습니다. Firestore 연결을 확인한 뒤 다시 열어 주세요.</p>}
       <div className="form-grid">
-        {config.fields.map((field) => <AdminInput key={field.name} field={field} value={values[field.name]} onChange={(value) => update(field.name, value)} />)}
+        {config.fields.map((field) => <AdminInput key={field.name} field={field} value={values[field.name]} readOnly={Boolean(document && field.name === "slug" && (config.name === "activities" || config.name === "projects"))} onChange={(value) => update(field.name, value)} />)}
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}
       <div className="form-actions"><button type="button" className="button button-secondary" onClick={onCancel}>취소</button><button className="button" disabled={saving || generationUnavailable}>{saving ? "저장 중…" : generationLoading && isCurrentRecruitment ? "기수 확인 중…" : "변경사항 저장"}</button></div>
@@ -226,7 +239,7 @@ function EditorForm({ config, document, onCancel, onSaved }: { config: AdminColl
   );
 }
 
-function AdminInput({ field, value, onChange }: { field: AdminField; value: FormValue; onChange: (value: FormValue) => void }) {
+function AdminInput({ field, value, readOnly = false, onChange }: { field: AdminField; value: FormValue; readOnly?: boolean; onChange: (value: FormValue) => void }) {
   const id = `field-${field.name}`;
   if (field.kind === "checkbox") return <label className="check-field"><input id={id} type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} /><span>{field.label}</span></label>;
   if (field.kind === "faq") return <FaqEditor id={id} label={field.label} items={Array.isArray(value) ? value : []} onChange={onChange} />;
@@ -234,7 +247,7 @@ function AdminInput({ field, value, onChange }: { field: AdminField; value: Form
   return (
     <label className={`field ${field.kind === "textarea" || field.kind === "list" ? "field-wide" : ""}`} htmlFor={id}>
       <span>{field.label}{field.required && <em>필수</em>}</span>
-      {field.kind === "textarea" || field.kind === "list" ? <textarea id={id} value={String(value)} required={field.required} rows={field.kind === "textarea" ? 5 : 3} onChange={(event) => onChange(event.target.value)} /> : field.kind === "select" ? <select id={id} value={String(value)} required={field.required} onChange={(event) => onChange(event.target.value)}><option value="">선택</option>{field.options?.map((option) => <option key={option}>{option}</option>)}</select> : <input id={id} type={field.kind === "date" || field.kind === "number" || field.kind === "url" ? field.kind : "text"} value={String(value)} required={field.required} onChange={(event) => onChange(event.target.value)} />}
+      {field.kind === "textarea" || field.kind === "list" ? <textarea id={id} value={String(value)} required={field.required} rows={field.kind === "textarea" ? 5 : 3} onChange={(event) => onChange(event.target.value)} /> : field.kind === "select" ? <select id={id} value={String(value)} required={field.required} onChange={(event) => onChange(event.target.value)}><option value="">선택</option>{field.options?.map((option) => <option key={option}>{option}</option>)}</select> : <input id={id} type={field.kind === "date" || field.kind === "number" || field.kind === "url" ? field.kind : "text"} value={String(value)} required={field.required} readOnly={readOnly} onChange={(event) => onChange(event.target.value)} />}
     </label>
   );
 }

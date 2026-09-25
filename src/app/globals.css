@@ -294,6 +294,7 @@ body:has(.admin-gate) > .site-footer { display: none; }
 .field small { color: var(--muted); font-weight: 400; }
 .field-wide { grid-column: 1 / -1; }
 .field input, .field select, .field textarea { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid #b8bec5; border-radius: 8px; background: white; color: var(--ink); }
+.field input:read-only { background: var(--surface); color: var(--muted); }
 .field textarea { resize: vertical; }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--blue); outline: 2px solid #d8e6ff; }
 .check-field { min-height: 52px; display: flex; align-items: center; gap: 10px; padding: 10px 0; font-weight: 680; }
