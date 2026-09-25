@@ -181,6 +181,7 @@ h3 { font-size: clamp(1.35rem, 2vw, 1.75rem); }
 .recruitment-panel .eyebrow { margin-top: 32px; color: #eef4ff; }
 .recruitment-panel h1, .recruitment-panel h2 { margin-bottom: 18px; font-size: clamp(2.25rem, 5vw, 4rem); }
 .recruitment-panel p:not(.eyebrow) { max-width: 650px; color: #eef4ff; }
+.recruitment-panel .inline-notice { color: #5f4b00; }
 .recruitment-date { margin-top: 24px; font-weight: 700; }
 .status-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 11px; border: 1px solid rgba(255,255,255,.38); border-radius: 999px; font-size: .75rem; font-weight: 750; }
 .status-badge::before { width: 8px; height: 8px; border-radius: 50%; background: #ffd54f; content: ""; }

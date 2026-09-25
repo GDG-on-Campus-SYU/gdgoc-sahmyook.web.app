@@ -15,14 +15,18 @@ export function usePublicCollection<T>(
 
   useEffect(() => {
     if (!db) return;
+    let active = true;
 
     getDocs(query(collection(db, collectionName), where(visibilityField, "==", true)))
       .then((snapshot) => {
+        if (!active) return;
         const liveItems = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as T);
         setItems(liveItems.length ? liveItems : fallback);
       })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
+      .catch(() => active && setError(true))
+      .finally(() => active && setLoading(false));
+
+    return () => { active = false; };
   }, [collectionName, fallback, visibilityField]);
 
   return { items, loading, error };

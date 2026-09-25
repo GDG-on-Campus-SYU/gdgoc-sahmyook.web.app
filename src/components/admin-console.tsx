@@ -13,6 +13,7 @@ export function AdminConsole() {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [checking, setChecking] = useState(isFirebaseConfigured);
+  const [authError, setAuthError] = useState(false);
 
   useEffect(() => {
     if (!auth || !db) return;
@@ -21,18 +22,23 @@ export function AdminConsole() {
     return onAuthStateChanged(activeAuth, async (currentUser) => {
       setUser(currentUser);
       setRole(null);
-      if (currentUser) {
-        const profile = await getDoc(doc(activeDb, "users", currentUser.uid));
-        const currentRole = profile.data()?.role;
-        if (currentRole === "admin" || currentRole === "editor") setRole(currentRole);
-      }
-      setChecking(false);
+      setChecking(true);
+      setAuthError(false);
+      try {
+        if (currentUser) {
+          const profile = await getDoc(doc(activeDb, "users", currentUser.uid));
+          const currentRole = profile.data()?.role;
+          if (currentRole === "admin" || currentRole === "editor") setRole(currentRole);
+        }
+      } catch { setAuthError(true); }
+      finally { setChecking(false); }
     });
   }, []);
 
   if (!isFirebaseConfigured) return <SetupState />;
   if (checking) return <AdminState text="권한을 확인하는 중입니다." />;
   if (!user) return <LoginState />;
+  if (authError) return <AdminErrorState user={user} />;
   if (!role) return <DeniedState user={user} />;
 
   return <Editor user={user} role={role} />;
@@ -74,6 +80,17 @@ function DeniedState({ user }: { user: User }) {
   );
 }
 
+function AdminErrorState({ user }: { user: User }) {
+  return (
+    <section className="admin-gate" role="alert">
+      <p className="eyebrow">Connection error</p>
+      <h1>권한을 확인하지 못했습니다</h1>
+      <p>{user.email} 계정의 Firestore 연결과 보안 규칙을 확인한 뒤 다시 로그인해 주세요.</p>
+      <button className="button button-secondary" onClick={() => auth && signOut(auth)}>다시 로그인</button>
+    </section>
+  );
+}
+
 function AdminState({ text }: { text: string }) {
   return <div className="admin-gate" aria-busy="true">{text}</div>;
 }
@@ -102,22 +119,28 @@ function CollectionEditor({ config }: { config: AdminCollection }) {
   const [editing, setEditing] = useState<DocumentRecord | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [loadError, setLoadError] = useState("");
 
   async function load() {
     if (!db) return;
     setLoading(true);
+    setLoadError("");
     try {
       const snapshot = await getDocs(collection(db, config.name));
       setDocuments(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
-    } finally { setLoading(false); }
+    } catch { setLoadError("목록을 불러오지 못했습니다. Firestore 연결과 권한을 확인해 주세요."); }
+    finally { setLoading(false); }
   }
 
   useEffect(() => {
     if (!db) return;
+    let active = true;
     const activeDb = db;
     getDocs(collection(activeDb, config.name))
-      .then((snapshot) => setDocuments(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))))
-      .finally(() => setLoading(false));
+      .then((snapshot) => active && setDocuments(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))))
+      .catch(() => active && setLoadError("목록을 불러오지 못했습니다. Firestore 연결과 권한을 확인해 주세요."))
+      .finally(() => active && setLoading(false));
+    return () => { active = false; };
   }, [config.name]);
 
   async function remove(item: DocumentRecord) {
@@ -134,6 +157,7 @@ function CollectionEditor({ config }: { config: AdminCollection }) {
         <button className="button" onClick={() => setEditing(null)}>새 {config.singular} 추가</button>
       </header>
       <p className="sr-live" aria-live="polite">{message}</p>
+      {loadError && <p className="form-error" role="alert">{loadError}</p>}
       {editing !== undefined ? (
         <EditorForm config={config} document={editing} onCancel={() => setEditing(undefined)} onSaved={async () => { setEditing(undefined); setMessage("저장했습니다."); await load(); }} />
       ) : loading ? (

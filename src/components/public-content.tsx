@@ -11,6 +11,32 @@ import type { Activity, Member, Project, Recruitment } from "@/types/content";
 
 const categories = ["All", "Study", "Session", "Project", "Networking", "Hackathon", "Collaboration"];
 const emptyMembers: Member[] = [];
+let recruitmentRequest: Promise<Recruitment> | null = null;
+
+function loadRecruitment() {
+  if (!db) return Promise.resolve(starterRecruitment);
+  if (!recruitmentRequest) {
+    recruitmentRequest = getDoc(doc(db, "recruitment", starterRecruitment.id))
+      .then((snapshot) => snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } as Recruitment : starterRecruitment)
+      .finally(() => { recruitmentRequest = null; });
+  }
+  return recruitmentRequest;
+}
+
+function useRecruitment() {
+  const [recruitment, setRecruitment] = useState<Recruitment>(starterRecruitment);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    loadRecruitment()
+      .then((value) => active && setRecruitment(value))
+      .catch(() => active && setError(true));
+    return () => { active = false; };
+  }, []);
+
+  return { recruitment, error };
+}
 
 function Media({ label }: { label: string }) {
   return <div className="card-image media-placeholder" aria-hidden="true"><span>{label.slice(0, 1)}</span><i /></div>;
@@ -135,15 +161,8 @@ export function PeopleCollection() {
 }
 
 export function RecruitmentPanel({ compact = false }: { compact?: boolean }) {
-  const [recruitment, setRecruitment] = useState<Recruitment>(starterRecruitment);
+  const { recruitment, error } = useRecruitment();
   const Heading = compact ? "h2" : "h1";
-
-  useEffect(() => {
-    if (!db) return;
-    getDoc(doc(db, "recruitment", starterRecruitment.id)).then((snapshot) => {
-      if (snapshot.exists()) setRecruitment({ id: snapshot.id, ...snapshot.data() } as Recruitment);
-    });
-  }, []);
 
   const status = {
     upcoming: ["모집 예정", "Recruitment coming soon"],
@@ -154,6 +173,7 @@ export function RecruitmentPanel({ compact = false }: { compact?: boolean }) {
   return (
     <div className={`recruitment-panel ${compact ? "compact" : ""}`}>
       <div>
+        {error && <p className="inline-notice" role="status">모집 정보를 불러오지 못해 준비된 안내를 표시합니다.</p>}
         <span className={`status-badge status-${recruitment.status}`}>{status[0]}</span>
         <p className="eyebrow">{recruitment.id}</p>
         <Heading>{recruitment.title}</Heading>
@@ -174,14 +194,7 @@ export function RecruitmentPanel({ compact = false }: { compact?: boolean }) {
 }
 
 export function RecruitmentDetails() {
-  const [recruitment, setRecruitment] = useState<Recruitment>(starterRecruitment);
-
-  useEffect(() => {
-    if (!db) return;
-    getDoc(doc(db, "recruitment", starterRecruitment.id)).then((snapshot) => {
-      if (snapshot.exists()) setRecruitment({ id: snapshot.id, ...snapshot.data() } as Recruitment);
-    });
-  }, []);
+  const { recruitment } = useRecruitment();
 
   const process = recruitment.process?.length ? recruitment.process : ["공식 모집 절차 공개 예정"];
   const faq = recruitment.faq?.length ? recruitment.faq : [

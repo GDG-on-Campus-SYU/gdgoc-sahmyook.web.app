@@ -7,11 +7,12 @@ import { usePublicCollection } from "@/lib/use-public-data";
 import type { Activity, Project } from "@/types/content";
 
 export function ActivityDetail() {
-  const { items, loading } = usePublicCollection<Activity>("activities", starterActivities);
+  const { items, loading, error } = usePublicCollection<Activity>("activities", starterActivities);
   const slug = useSearchParams().get("slug");
   const activity = items.find((item) => item.slug === slug);
 
   if (loading) return <DetailLoading />;
+  if (error) return <DetailError href="/activities" label="활동 목록" />;
   if (!activity) return <DetailMissing href="/activities" label="활동 목록" />;
 
   return (
@@ -36,11 +37,12 @@ export function ActivityDetail() {
 }
 
 export function ProjectDetail() {
-  const { items, loading } = usePublicCollection<Project>("projects", starterProjects);
+  const { items, loading, error } = usePublicCollection<Project>("projects", starterProjects);
   const slug = useSearchParams().get("slug");
   const project = items.find((item) => item.slug === slug);
 
   if (loading) return <DetailLoading />;
+  if (error) return <DetailError href="/projects" label="프로젝트 목록" />;
   if (!project) return <DetailMissing href="/projects" label="프로젝트 목록" />;
 
   const sections = [
@@ -77,6 +79,10 @@ function DetailLoading() {
 
 function DetailMissing({ href, label }: { href: string; label: string }) {
   return <div className="detail-state container"><h1>콘텐츠를 찾을 수 없습니다</h1><p>주소가 올바른지 확인해 주세요.</p><Link className="button" href={href}>{label}으로 돌아가기</Link></div>;
+}
+
+function DetailError({ href, label }: { href: string; label: string }) {
+  return <div className="detail-state container" role="alert"><h1>콘텐츠를 불러오지 못했습니다</h1><p>잠시 후 다시 시도해 주세요.</p><Link className="button" href={href}>{label}으로 돌아가기</Link></div>;
 }
 
 function track(event: string) {
