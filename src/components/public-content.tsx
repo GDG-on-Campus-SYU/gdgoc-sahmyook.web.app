@@ -6,7 +6,9 @@ import { useEffect, useMemo, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { starterActivities, starterProjects, starterRecruitment } from "@/lib/starter-content";
+import { loadCurrentGeneration, useCurrentGeneration } from "@/lib/use-current-generation";
 import { usePublicCollection } from "@/lib/use-public-data";
+import { PageHero } from "@/components/site-shell";
 import type { Activity, Member, Project, Recruitment } from "@/types/content";
 
 const categories = ["All", "Study", "Session", "Project", "Networking", "Hackathon", "Collaboration"];
@@ -15,8 +17,10 @@ let recruitmentRequest: Promise<Recruitment> | null = null;
 
 function loadRecruitment() {
   if (!db) return Promise.resolve(starterRecruitment);
+  const activeDb = db;
   if (!recruitmentRequest) {
-    recruitmentRequest = getDoc(doc(db, "recruitment", starterRecruitment.id))
+    recruitmentRequest = loadCurrentGeneration()
+      .then(({ generationId }) => getDoc(doc(activeDb, "recruitment", generationId)))
       .then((snapshot) => snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } as Recruitment : starterRecruitment)
       .finally(() => { recruitmentRequest = null; });
   }
@@ -40,6 +44,11 @@ function useRecruitment() {
 
 function Media({ label }: { label: string }) {
   return <div className="card-image media-placeholder" aria-hidden="true"><span>{label.slice(0, 1)}</span><i /></div>;
+}
+
+export function PeopleHero() {
+  const { generation } = useCurrentGeneration();
+  return <PageHero eyebrow={`People · ${generation.label}`} title="커뮤니티를 만드는 사람들" description="프로필과 외부 링크는 본인이 공개에 동의한 경우에만 표시합니다." />;
 }
 
 export function ActivityCollection({ compact = false }: { compact?: boolean }) {
@@ -127,7 +136,10 @@ export function ProjectCollection({ compact = false }: { compact?: boolean }) {
 
 export function PeopleCollection() {
   const { items, loading, error } = usePublicCollection<Member>("members", emptyMembers, "visible");
-  const sorted = [...items].sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+  const { generation } = useCurrentGeneration();
+  const sorted = items
+    .filter((member) => !member.generation || normalizeGeneration(member.generation) === normalizeGeneration(generation.generationId))
+    .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
 
   if (!sorted.length && !loading) {
     return <EmptyState title="구성원 소개를 준비하고 있어요" text="공개 동의를 마친 프로필부터 차례로 소개합니다." />;
@@ -244,4 +256,8 @@ function safeHref(value?: string) {
 function githubAvatarUrl(value?: string) {
   const match = value?.match(/^https:\/\/(?:www\.)?github\.com\/([^/?#]+)\/?(?:[?#].*)?$/i);
   return match ? `https://github.com/${encodeURIComponent(match[1])}.png?size=160` : null;
+}
+
+function normalizeGeneration(value: string) {
+  return value.trim().replace(/[–—]/g, "-");
 }
