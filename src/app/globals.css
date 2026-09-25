@@ -298,6 +298,11 @@ body:has(.admin-gate) > .site-footer { display: none; }
 .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--blue); outline: 2px solid #d8e6ff; }
 .check-field { min-height: 52px; display: flex; align-items: center; gap: 10px; padding: 10px 0; font-weight: 680; }
 .check-field input { width: 20px; height: 20px; accent-color: var(--blue); }
+.faq-field { display: grid; gap: 14px; margin: 0 0 20px; padding: 0; border: 0; }
+.faq-field legend { margin-bottom: 8px; font-size: .84rem; font-weight: 700; }
+.faq-editor-row { display: grid; grid-template-columns: 1fr 1fr auto; gap: 14px; align-items: end; padding: 16px; border: 1px solid var(--line); border-radius: 10px; }
+.faq-editor-row .field { margin: 0; }
+.faq-remove { min-height: 44px; padding: 9px 12px; border: 1px solid #efb7b2; border-radius: 8px; background: white; color: #b3261e; cursor: pointer; }
 .form-error { padding: 12px 14px; border-left: 3px solid var(--red); background: #fce8e6; color: #8c1d18; }
 .form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--line); }
 .form-actions button:disabled { opacity: .6; cursor: wait; }
@@ -370,6 +375,7 @@ body:has(.admin-gate) > .site-footer { display: none; }
   .admin-heading { align-items: flex-start; flex-direction: column; }
   .admin-heading .button { width: 100%; }
   .form-grid { grid-template-columns: 1fr; }
+  .faq-editor-row { grid-template-columns: 1fr; }
   .field-wide { grid-column: auto; }
   .form-actions { flex-direction: column-reverse; }
   .form-actions .button { width: 100%; }

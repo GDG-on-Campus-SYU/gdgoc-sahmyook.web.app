@@ -59,4 +59,5 @@ export type Recruitment = {
   process?: string[];
   roles?: string[];
   faq?: Array<{ question: string; answer: string }>;
+  published?: boolean;
 };

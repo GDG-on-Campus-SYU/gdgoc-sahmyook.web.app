@@ -1,7 +1,7 @@
 export type AdminField = {
   name: string;
   label: string;
-  kind?: "text" | "url" | "textarea" | "date" | "number" | "checkbox" | "select" | "list";
+  kind?: "text" | "url" | "textarea" | "date" | "number" | "checkbox" | "select" | "list" | "faq";
   required?: boolean;
   options?: string[];
 };
@@ -76,6 +76,8 @@ export const adminCollections: AdminCollection[] = [
       { name: "status", label: "모집 상태", kind: "select", required: true, options: ["upcoming", "open", "closed"] },
       { name: "process", label: "모집 절차 (한 줄에 한 단계)", kind: "list" },
       { name: "roles", label: "모집 역할 (한 줄에 하나)", kind: "list" },
+      { name: "faq", label: "자주 묻는 질문", kind: "faq" },
+      { name: "published", label: "공개", kind: "checkbox" },
     ],
   },
 ];

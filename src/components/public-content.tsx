@@ -21,7 +21,7 @@ function loadRecruitment() {
   if (!recruitmentRequest) {
     recruitmentRequest = loadCurrentGeneration()
       .then(({ generationId }) => getDoc(doc(activeDb, "recruitment", generationId)))
-      .then((snapshot) => snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } as Recruitment : starterRecruitment)
+      .then((snapshot) => snapshot.exists() && snapshot.data().published === true ? { id: snapshot.id, ...snapshot.data() } as Recruitment : starterRecruitment)
       .finally(() => { recruitmentRequest = null; });
   }
   return recruitmentRequest;
@@ -218,18 +218,35 @@ export function RecruitmentDetails() {
     <>
       <ol className="process-list">
         {process.map((step, index) => (
-          <li key={step}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong></li>
+          <li key={`${step}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong></li>
         ))}
       </ol>
       <div className="faq-list">
-        {faq.map((item) => (
-          <details key={item.question}>
+        {faq.map((item, index) => (
+          <details key={`${item.question}-${index}`}>
             <summary>{item.question}<span aria-hidden="true">＋</span></summary>
             <p>{item.answer}</p>
           </details>
         ))}
       </div>
     </>
+  );
+}
+
+export function RecruitmentRoles() {
+  const { recruitment } = useRecruitment();
+  const roles = recruitment.roles?.length ? recruitment.roles : starterRecruitment.roles!;
+
+  return (
+    <div className="role-cards">
+      {roles.map((role, index) => (
+        <article key={`${role}-${index}`}>
+          <span>{role.toUpperCase()}</span>
+          <h3>{role}</h3>
+          <p>{roleDescription(role)}</p>
+        </article>
+      ))}
+    </div>
   );
 }
 
@@ -256,6 +273,12 @@ function safeHref(value?: string) {
 function githubAvatarUrl(value?: string) {
   const match = value?.match(/^https:\/\/(?:www\.)?github\.com\/([^/?#]+)\/?(?:[?#].*)?$/i);
   return match ? `https://github.com/${encodeURIComponent(match[1])}.png?size=160` : null;
+}
+
+function roleDescription(role: string) {
+  if (role === "Member") return "스터디, 세션, 프로젝트와 커뮤니티 프로그램에 참여합니다.";
+  if (role === "Team Member") return "커뮤니티 프로그램과 콘텐츠의 기획·운영에 참여합니다.";
+  return "상세 역할과 활동 범위는 현재 기수 모집 공고에서 안내합니다.";
 }
 
 function normalizeGeneration(value: string) {

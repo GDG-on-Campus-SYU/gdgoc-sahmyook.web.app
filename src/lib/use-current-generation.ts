@@ -33,14 +33,16 @@ export function loadCurrentGeneration() {
 export function useCurrentGeneration() {
   const [generation, setGeneration] = useState(fallbackGeneration);
   const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(Boolean(db));
 
   useEffect(() => {
     let active = true;
     loadCurrentGeneration()
       .then((value) => active && setGeneration(value))
-      .catch(() => active && setError(true));
+      .catch(() => active && setError(true))
+      .finally(() => active && setLoading(false));
     return () => { active = false; };
   }, []);
 
-  return { generation, error };
+  return { generation, error, loading };
 }

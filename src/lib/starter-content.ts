@@ -33,4 +33,5 @@ export const starterRecruitment: Recruitment = {
   process: [],
   roles: ["Member", "Team Member"],
   faq: [],
+  published: true,
 };

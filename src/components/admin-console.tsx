@@ -5,9 +5,12 @@ import { GoogleAuthProvider, User, onAuthStateChanged, signInWithPopup, signOut 
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, serverTimestamp, setDoc } from "firebase/firestore";
 import { adminCollections, AdminCollection, AdminField } from "@/lib/admin-config";
 import { auth, db, isFirebaseConfigured } from "@/lib/firebase";
+import { useCurrentGeneration } from "@/lib/use-current-generation";
 
 type DocumentRecord = { id: string } & Record<string, unknown>;
-type FormValues = Record<string, string | boolean>;
+type FaqItem = { question: string; answer: string };
+type FormValue = string | boolean | FaqItem[];
+type FormValues = Record<string, FormValue>;
 
 export function AdminConsole() {
   const [user, setUser] = useState<User | null>(null);
@@ -174,18 +177,32 @@ function CollectionEditor({ config }: { config: AdminCollection }) {
 }
 
 function EditorForm({ config, document, onCancel, onSaved }: { config: AdminCollection; document: DocumentRecord | null; onCancel: () => void; onSaved: () => void }) {
-  const [documentId, setDocumentId] = useState(document?.id || "");
-  const [values, setValues] = useState<FormValues>(() => Object.fromEntries(config.fields.map((field) => [field.name, initialValue(document?.[field.name])] )));
+  const { generation, error: generationError, loading: generationLoading } = useCurrentGeneration();
+  const isCurrentRecruitment = config.name === "recruitment" && !document;
+  const generationUnavailable = isCurrentRecruitment && (generationLoading || generationError);
+  const [customDocumentId, setCustomDocumentId] = useState(document?.id || "");
+  const documentId = isCurrentRecruitment ? generation.generationId : customDocumentId;
+  const [values, setValues] = useState<FormValues>(() => Object.fromEntries(config.fields.map((field) => [field.name, initialValue(field, document?.[field.name])] )));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  function update(name: string, value: string | boolean) { setValues((current) => ({ ...current, [name]: value })); }
+  function update(name: string, value: FormValue) { setValues((current) => ({ ...current, [name]: value })); }
 
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!db) return;
+    if (generationUnavailable) {
+      setError("현재 기수를 확인하지 못해 저장할 수 없습니다. 잠시 후 다시 시도해 주세요.");
+      return;
+    }
     setSaving(true);
     setError("");
+    const faq = values.faq;
+    if (Array.isArray(faq) && faq.some((item) => Boolean(item.question.trim()) !== Boolean(item.answer.trim()))) {
+      setError("FAQ는 질문과 답변을 모두 입력하거나 둘 다 비워 주세요.");
+      setSaving(false);
+      return;
+    }
     const payload = Object.fromEntries(config.fields.map((field) => [field.name, serializeValue(field, values[field.name]) ]));
     try {
       if (document) await setDoc(doc(db, config.name, document.id), { ...payload, updatedAt: serverTimestamp() }, { merge: true });
@@ -198,19 +215,21 @@ function EditorForm({ config, document, onCancel, onSaved }: { config: AdminColl
   return (
     <form className="admin-form" onSubmit={save}>
       <div className="form-heading"><div><p className="eyebrow">{document ? "Edit" : "New"}</p><h2>{document ? String(document[config.titleField]) : `새 ${config.singular}`}</h2></div><button type="button" onClick={onCancel}>닫기</button></div>
-      {!document && <label className="field"><span>문서 ID <small>비워두면 자동 생성</small></span><input value={documentId} onChange={(event) => setDocumentId(event.target.value)} pattern="[A-Za-z0-9가-힣_-]*" /></label>}
+      {!document && <label className="field"><span>문서 ID <small>{isCurrentRecruitment ? generationLoading ? "현재 기수 확인 중" : generationError ? "현재 기수 조회 실패" : "현재 기수 기준" : "비워두면 자동 생성"}</small></span><input value={documentId} onChange={(event) => setCustomDocumentId(event.target.value)} pattern="[A-Za-z0-9가-힣_-]*" readOnly={isCurrentRecruitment} required={isCurrentRecruitment} /></label>}
+      {isCurrentRecruitment && generationError && <p className="form-error" role="alert">현재 기수를 불러오지 못했습니다. Firestore 연결을 확인한 뒤 다시 열어 주세요.</p>}
       <div className="form-grid">
         {config.fields.map((field) => <AdminInput key={field.name} field={field} value={values[field.name]} onChange={(value) => update(field.name, value)} />)}
       </div>
       {error && <p className="form-error" role="alert">{error}</p>}
-      <div className="form-actions"><button type="button" className="button button-secondary" onClick={onCancel}>취소</button><button className="button" disabled={saving}>{saving ? "저장 중…" : "변경사항 저장"}</button></div>
+      <div className="form-actions"><button type="button" className="button button-secondary" onClick={onCancel}>취소</button><button className="button" disabled={saving || generationUnavailable}>{saving ? "저장 중…" : generationLoading && isCurrentRecruitment ? "기수 확인 중…" : "변경사항 저장"}</button></div>
     </form>
   );
 }
 
-function AdminInput({ field, value, onChange }: { field: AdminField; value: string | boolean; onChange: (value: string | boolean) => void }) {
+function AdminInput({ field, value, onChange }: { field: AdminField; value: FormValue; onChange: (value: FormValue) => void }) {
   const id = `field-${field.name}`;
   if (field.kind === "checkbox") return <label className="check-field"><input id={id} type="checkbox" checked={Boolean(value)} onChange={(event) => onChange(event.target.checked)} /><span>{field.label}</span></label>;
+  if (field.kind === "faq") return <FaqEditor id={id} label={field.label} items={Array.isArray(value) ? value : []} onChange={onChange} />;
 
   return (
     <label className={`field ${field.kind === "textarea" || field.kind === "list" ? "field-wide" : ""}`} htmlFor={id}>
@@ -220,15 +239,42 @@ function AdminInput({ field, value, onChange }: { field: AdminField; value: stri
   );
 }
 
-function initialValue(value: unknown): string | boolean {
+function FaqEditor({ id, label, items, onChange }: { id: string; label: string; items: FaqItem[]; onChange: (value: FaqItem[]) => void }) {
+  function update(index: number, key: keyof FaqItem, value: string) {
+    onChange(items.map((item, itemIndex) => itemIndex === index ? { ...item, [key]: value } : item));
+  }
+
+  return (
+    <fieldset className="faq-field field-wide">
+      <legend>{label}</legend>
+      {items.map((item, index) => (
+        <div className="faq-editor-row" key={index}>
+          <label className="field" htmlFor={`${id}-question-${index}`}><span>질문 {index + 1}</span><input id={`${id}-question-${index}`} value={item.question} onChange={(event) => update(index, "question", event.target.value)} /></label>
+          <label className="field" htmlFor={`${id}-answer-${index}`}><span>답변 {index + 1}</span><textarea id={`${id}-answer-${index}`} rows={3} value={item.answer} onChange={(event) => update(index, "answer", event.target.value)} /></label>
+          <button type="button" className="faq-remove" onClick={() => onChange(items.filter((_, itemIndex) => itemIndex !== index))} aria-label={`질문 ${index + 1} 삭제`}>삭제</button>
+        </div>
+      ))}
+      <button type="button" className="button button-secondary" onClick={() => onChange([...items, { question: "", answer: "" }])}>질문 추가</button>
+    </fieldset>
+  );
+}
+
+function initialValue(field: AdminField, value: unknown): FormValue {
+  if (field.kind === "faq") {
+    if (!Array.isArray(value)) return [];
+    return value.flatMap((item) => typeof item === "object" && item !== null
+      ? [{ question: String(Reflect.get(item, "question") || ""), answer: String(Reflect.get(item, "answer") || "") }]
+      : []);
+  }
   if (typeof value === "boolean") return value;
   if (Array.isArray(value)) return value.join("\n");
   return value == null ? "" : String(value);
 }
 
-function serializeValue(field: AdminField, value: string | boolean) {
+function serializeValue(field: AdminField, value: FormValue) {
   if (field.kind === "checkbox") return Boolean(value);
   if (field.kind === "number") return value === "" ? null : Number(value);
   if (field.kind === "list") return String(value).split(/\n|,/).map((item) => item.trim()).filter(Boolean);
+  if (field.kind === "faq") return Array.isArray(value) ? value.map((item) => ({ question: item.question.trim(), answer: item.answer.trim() })).filter((item) => item.question && item.answer) : [];
   return String(value).trim();
 }
