@@ -3,13 +3,16 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { starterActivities, starterProjects } from "@/lib/starter-content";
-import { usePublicCollection } from "@/lib/use-public-data";
+import { usePublicDocument } from "@/lib/use-public-data";
 import type { Activity, Project } from "@/types/content";
 
 export function ActivityDetail() {
-  const { items, loading, error } = usePublicCollection<Activity>("activities", starterActivities);
   const slug = useSearchParams().get("slug");
-  const activity = items.find((item) => item.slug === slug);
+  const { item: activity, loading, error } = usePublicDocument<Activity>(
+    "activities",
+    slug,
+    starterActivities.find((item) => item.slug === slug),
+  );
 
   if (loading) return <DetailLoading />;
   if (error) return <DetailError href="/activities" label="활동 목록" />;
@@ -38,9 +41,12 @@ export function ActivityDetail() {
 }
 
 export function ProjectDetail() {
-  const { items, loading, error } = usePublicCollection<Project>("projects", starterProjects);
   const slug = useSearchParams().get("slug");
-  const project = items.find((item) => item.slug === slug);
+  const { item: project, loading, error } = usePublicDocument<Project>(
+    "projects",
+    slug,
+    starterProjects.find((item) => item.slug === slug),
+  );
 
   if (loading) return <DetailLoading />;
   if (error) return <DetailError href="/projects" label="프로젝트 목록" />;
