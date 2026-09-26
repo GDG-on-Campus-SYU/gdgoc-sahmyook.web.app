@@ -35,7 +35,9 @@ function useRecruitment() {
     let active = true;
     loadRecruitment()
       .then((value) => active && setRecruitment(value))
-      .catch(() => active && setError(true));
+      .catch((reason: unknown) => {
+        if (active) setError((reason as { code?: string }).code !== "permission-denied");
+      });
     return () => { active = false; };
   }, []);
 

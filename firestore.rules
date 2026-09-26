@@ -24,12 +24,17 @@ service cloud.firestore {
     }
 
     match /recruitment/{id} {
+      allow read: if resource.data.published == true || isEditor();
+      allow write: if isEditor();
+    }
+
+    match /generations/current {
       allow read: if true;
       allow write: if isEditor();
     }
 
     match /generations/{id} {
-      allow read: if true;
+      allow read: if resource.data.published == true || isEditor();
       allow write: if isEditor();
     }
   }
