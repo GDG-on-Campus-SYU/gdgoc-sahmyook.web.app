@@ -138,10 +138,7 @@ export function ProjectCollection({ compact = false }: { compact?: boolean }) {
 
 export function PeopleCollection() {
   const { items, loading, error } = usePublicCollection<Member>("members", emptyMembers, "visible");
-  const { generation } = useCurrentGeneration();
-  const sorted = items
-    .filter((member) => !member.generation || normalizeGeneration(member.generation) === normalizeGeneration(generation.generationId))
-    .sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+  const sorted = [...items].sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
 
   if (!sorted.length && !loading) {
     return <EmptyState title="구성원 소개를 준비하고 있어요" text="공개 동의를 마친 프로필부터 차례로 소개합니다." />;
@@ -163,6 +160,7 @@ export function PeopleCollection() {
             <h3>{member.name}</h3>
             <span>{member.position}</span>
           </div>
+          {member.description && <p className="person-description">{member.description}</p>}
           <div className="social-links">
             {safeHref(member.github) && <a href={safeHref(member.github)!} target="_blank" rel="noreferrer">GitHub ↗</a>}
             {safeHref(member.linkedin) && <a href={safeHref(member.linkedin)!} target="_blank" rel="noreferrer">LinkedIn ↗</a>}
@@ -281,8 +279,4 @@ function roleDescription(role: string) {
   if (role === "Member") return "스터디, 세션, 프로젝트와 커뮤니티 프로그램에 참여합니다.";
   if (role === "Team Member") return "커뮤니티 프로그램과 콘텐츠의 기획·운영에 참여합니다.";
   return "상세 역할과 활동 범위는 현재 기수 모집 공고에서 안내합니다.";
-}
-
-function normalizeGeneration(value: string) {
-  return value.trim().replace(/[–—]/g, "-");
 }
