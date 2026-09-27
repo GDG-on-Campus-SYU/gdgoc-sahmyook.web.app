@@ -7,6 +7,112 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'editor'];
     }
 
+    function hasAuditFields(data) {
+      return (!('createdAt' in data) || data.createdAt is timestamp)
+        && (!('updatedAt' in data) || data.updatedAt is timestamp)
+        && (!('createdBy' in data) || data.createdBy is string)
+        && (!('updatedBy' in data) || data.updatedBy is string)
+        && (!('archivedAt' in data) || data.archivedAt is timestamp)
+        && (!('archivedBy' in data) || data.archivedBy is string);
+    }
+
+    function hasValidDates(data) {
+      return (!('startDate' in data) || data.startDate is string)
+        && (!('endDate' in data) || data.endDate is string)
+        && (!('startDate' in data) || !('endDate' in data)
+          || data.startDate == '' || data.endDate == '' || data.endDate >= data.startDate);
+    }
+
+    function isValidActivity(data) {
+      return data.keys().hasOnly([
+          'title', 'slug', 'summary', 'content', 'category', 'startDate', 'endDate',
+          'status', 'generation', 'participants', 'host', 'links', 'published',
+          'order', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy', 'archivedAt', 'archivedBy'
+        ])
+        && data.title is string && data.slug is string && data.summary is string
+        && data.category in ['Study', 'Session', 'Project', 'Networking', 'Hackathon', 'Collaboration']
+        && data.status in ['예정', '진행 중', '종료']
+        && data.published is bool
+        && (!('content' in data) || data.content is string)
+        && (!('generation' in data) || data.generation is string)
+        && (!('participants' in data) || data.participants is string)
+        && (!('host' in data) || data.host is string)
+        && (!('links' in data) || data.links is list)
+        && (!('order' in data) || data.order is number)
+        && hasValidDates(data) && hasAuditFields(data);
+    }
+
+    function isValidProject(data) {
+      return data.keys().hasOnly([
+          'title', 'slug', 'summary', 'description', 'problem', 'solution', 'result',
+          'members', 'techStack', 'github', 'demo', 'generation', 'published', 'order',
+          'createdAt', 'updatedAt', 'createdBy', 'updatedBy', 'archivedAt', 'archivedBy'
+        ])
+        && data.title is string && data.slug is string && data.summary is string
+        && data.published is bool
+        && (!('description' in data) || data.description is string)
+        && (!('problem' in data) || data.problem is string)
+        && (!('solution' in data) || data.solution is string)
+        && (!('result' in data) || data.result is string)
+        && (!('members' in data) || data.members is list)
+        && (!('techStack' in data) || data.techStack is list)
+        && (!('github' in data) || data.github is string)
+        && (!('demo' in data) || data.demo is string)
+        && (!('generation' in data) || data.generation is string)
+        && (!('order' in data) || data.order is number)
+        && hasAuditFields(data);
+    }
+
+    function isValidMember(data) {
+      return data.keys().hasOnly([
+          'name', 'role', 'position', 'generation', 'activityGenerations', 'description',
+          'github', 'linkedin', 'website', 'visible', 'order', 'consentConfirmedAt',
+          'consentConfirmedBy', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy',
+          'archivedAt', 'archivedBy'
+        ])
+        && data.name is string
+        && data.role in ['Organizer', 'Team Member', 'Member']
+        && data.visible is bool
+        && (!('position' in data) || data.position is string)
+        && (!('generation' in data) || data.generation is string)
+        && (!('activityGenerations' in data) || data.activityGenerations is list)
+        && (('activityGenerations' in data && data.activityGenerations.size() > 0)
+          || ('generation' in data && data.generation != ''))
+        && (!('description' in data) || data.description is string)
+        && (!('github' in data) || data.github is string)
+        && (!('linkedin' in data) || data.linkedin is string)
+        && (!('website' in data) || data.website is string)
+        && (!('order' in data) || data.order is number)
+        && (!('consentConfirmedAt' in data) || data.consentConfirmedAt is timestamp)
+        && (!('consentConfirmedBy' in data) || data.consentConfirmedBy is string)
+        && (!data.visible || ('consentConfirmedAt' in data && 'consentConfirmedBy' in data))
+        && hasAuditFields(data);
+    }
+
+    function isValidRecruitment(data) {
+      return data.keys().hasOnly([
+          'title', 'description', 'startDate', 'endDate', 'applyUrl', 'status', 'process',
+          'roles', 'faq', 'published', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy',
+          'archivedAt', 'archivedBy'
+        ])
+        && data.title is string && data.description is string
+        && data.status in ['upcoming', 'open', 'closed']
+        && data.published is bool
+        && (!('applyUrl' in data) || data.applyUrl is string)
+        && (!('process' in data) || data.process is list)
+        && (!('roles' in data) || data.roles is list)
+        && (!('faq' in data) || data.faq is list)
+        && (data.status != 'open' || ('applyUrl' in data && data.applyUrl != ''))
+        && hasValidDates(data) && hasAuditFields(data);
+    }
+
+    function isValidGeneration(data) {
+      return data.keys().hasOnly(['label', 'published', 'order', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy'])
+        && data.label is string && data.published is bool
+        && (!('order' in data) || data.order is number)
+        && hasAuditFields(data);
+    }
+
     match /users/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
@@ -14,28 +120,43 @@ service cloud.firestore {
 
     match /members/{id} {
       allow read: if resource.data.visible == true || isEditor();
-      allow write: if isEditor();
+      allow create, update: if isEditor() && isValidMember(request.resource.data);
+      allow delete: if false;
     }
 
-    match /{collection}/{id} {
-      allow read: if collection in ['activities', 'projects', 'events']
-        && (resource.data.published == true || isEditor());
-      allow write: if collection in ['activities', 'projects', 'events'] && isEditor();
+    match /activities/{id} {
+      allow read: if resource.data.published == true || isEditor();
+      allow create, update: if isEditor() && isValidActivity(request.resource.data);
+      allow delete: if false;
+    }
+
+    match /projects/{id} {
+      allow read: if resource.data.published == true || isEditor();
+      allow create, update: if isEditor() && isValidProject(request.resource.data);
+      allow delete: if false;
     }
 
     match /recruitment/{id} {
       allow read: if resource.data.published == true || isEditor();
-      allow write: if isEditor();
+      allow create, update: if isEditor() && isValidRecruitment(request.resource.data);
+      allow delete: if false;
     }
 
     match /generations/current {
       allow read: if true;
-      allow write: if isEditor();
+      allow create, update: if isEditor()
+        && request.resource.data.keys().hasOnly(['generationId', 'label', 'updatedAt', 'updatedBy'])
+        && request.resource.data.generationId is string
+        && request.resource.data.label is string
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.updatedBy is string;
+      allow delete: if false;
     }
 
     match /generations/{id} {
       allow read: if resource.data.published == true || isEditor();
-      allow write: if isEditor();
+      allow create, update: if isEditor() && isValidGeneration(request.resource.data);
+      allow delete: if false;
     }
   }
 }
