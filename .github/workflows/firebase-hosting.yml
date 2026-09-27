@@ -5,22 +5,23 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: read
-  checks: write
-  pull-requests: write
-
 jobs:
   validate:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    concurrency:
+      group: validate-${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm test:rules
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm build
@@ -36,14 +37,27 @@ jobs:
   deploy:
     needs: validate
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    concurrency:
+      group: firebase-deploy-${{ github.ref }}
+      cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        if: github.event_name == 'push'
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - run: pnpm dlx firebase-tools@15.30.2 deploy --only firestore:rules --project "${{ vars.FIREBASE_PROJECT_ID }}" --non-interactive
+        if: github.event_name == 'push'
       - run: pnpm build
         env:
           NEXT_PUBLIC_FIREBASE_API_KEY: ${{ vars.NEXT_PUBLIC_FIREBASE_API_KEY }}
@@ -53,16 +67,19 @@ jobs:
           NEXT_PUBLIC_FIREBASE_APP_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_APP_ID }}
           NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
           NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      - uses: FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a # v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           projectId: ${{ vars.FIREBASE_PROJECT_ID }}
           channelId: ${{ github.event_name == 'push' && 'live' || format('pr-{0}', github.event.number) }}
           expires: 7d
-      - uses: google-github-actions/auth@v3
+      - name: Verify live deployment
         if: github.event_name == 'push'
-        with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-      - run: pnpm dlx firebase-tools@15.30.2 deploy --only firestore:rules --project "${{ vars.FIREBASE_PROJECT_ID }}" --non-interactive
-        if: github.event_name == 'push'
+        env:
+          SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+        run: |
+          test -n "$SITE_URL"
+          for path in / /people/ /recruit/; do
+            curl --fail --silent --show-error --retry 5 --retry-all-errors "${SITE_URL%/}${path}" | grep -q "GDGoC Sahmyook"
+          done
