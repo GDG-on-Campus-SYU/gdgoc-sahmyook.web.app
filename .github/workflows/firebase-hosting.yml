@@ -25,6 +25,7 @@ jobs:
           distribution: temurin
           java-version: 21
       - run: pnpm install --frozen-lockfile
+      - run: pnpm test:unit
       - run: pnpm test:rules
       - run: pnpm typecheck
       - run: pnpm lint

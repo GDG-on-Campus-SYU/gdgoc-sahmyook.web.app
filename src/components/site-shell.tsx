@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { MobileNav } from "@/components/mobile-nav";
 import { DesktopNav } from "@/components/desktop-nav";
+import { TrackedLink } from "@/components/tracked-link";
 
 const navigation = [
   ["About", "/about"],
@@ -76,14 +77,19 @@ export function SiteFooter() {
         </div>
         <div className="footer-links">
           <strong>Community</strong>
-          <a href="https://developers.google.com/community/gdg-on-campus" target="_blank" rel="noreferrer">
+          <TrackedLink href="https://gdg.community.dev/gdg-on-campus-sahmyook-university-seoul-south-korea/" event="chapter_visit_click" external>공식 챕터 페이지 ↗</TrackedLink>
+          <TrackedLink href="https://github.com/orgs/GDG-on-Campus-SYU/" event="github_click" external>GitHub ↗</TrackedLink>
+          <TrackedLink href="mailto:dscsahmyook@gmail.com" event="contact_click">문의 이메일 ↗</TrackedLink>
+          <a href="https://developers.google.com/community" target="_blank" rel="noopener noreferrer">
             GDG on Campus <span aria-hidden="true">↗</span>
           </a>
+          <a href="https://gdg.community.dev/participation-terms/" target="_blank" rel="noopener noreferrer">행사 참여 기준 ↗</a>
+          <Link href="/privacy/">방문 분석 안내·설정</Link>
         </div>
       </div>
       <div className="container footer-bottom">
         <span>© {new Date().getFullYear()} GDGoC Sahmyook</span>
-        <span>Google의 공식 웹사이트가 아닙니다.</span>
+        <span>이 챕터는 독립적으로 운영되며, 게시된 견해는 Google의 견해를 대변하지 않습니다.</span>
       </div>
     </footer>
   );

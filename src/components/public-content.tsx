@@ -6,6 +6,9 @@ import { useEffect, useMemo, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { loadCurrentGeneration } from "@/lib/use-current-generation";
+import { effectiveRecruitmentStatus } from "@/lib/recruitment-status";
+import { trackAnalyticsEvent } from "@/lib/analytics-consent";
+import { memberRoleForGeneration } from "@/lib/member-presentation";
 import { usePublicCollection } from "@/lib/use-public-data";
 import { PageHero } from "@/components/site-shell";
 import type { Activity, Generation, Member, Project, Recruitment } from "@/types/content";
@@ -36,6 +39,7 @@ function useRecruitment() {
   const [recruitment, setRecruitment] = useState<Recruitment>();
   const [loading, setLoading] = useState(Boolean(db));
   const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -48,9 +52,9 @@ function useRecruitment() {
       })
       .finally(() => active && setLoading(false));
     return () => { active = false; };
-  }, []);
+  }, [attempt]);
 
-  return { recruitment, loading, error };
+  return { recruitment, loading, error, retry: () => { setError(false); setLoading(true); setAttempt((value) => value + 1); } };
 }
 
 function Media({ label, shortLabel = label.slice(0, 1) }: { label: string; shortLabel?: string }) {
@@ -62,7 +66,7 @@ export function PeopleHero() {
 }
 
 export function ActivityCollection({ compact = false }: { compact?: boolean }) {
-  const { items, loading, error } = usePublicCollection<Activity>("activities");
+  const { items, loading, error, retry } = usePublicCollection<Activity>("activities");
   const { items: generationItems } = usePublicCollection<Generation>("generations", "published", !compact);
   const [category, setCategory] = useState("All");
   const [generation, setGeneration] = useState("All");
@@ -73,7 +77,7 @@ export function ActivityCollection({ compact = false }: { compact?: boolean }) {
   const visibleItems = compact ? filtered.slice(0, 3) : filtered;
 
   if (loading) return <CollectionLoading text="활동을 불러오는 중입니다." />;
-  if (error) return <CollectionError text="활동을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." />;
+  if (error) return <CollectionError text="활동을 불러오지 못했습니다." onRetry={retry} />;
 
   return (
     <div>
@@ -113,7 +117,7 @@ export function ActivityCollection({ compact = false }: { compact?: boolean }) {
 }
 
 export function ProjectCollection({ compact = false }: { compact?: boolean }) {
-  const { items, loading, error } = usePublicCollection<Project>("projects");
+  const { items, loading, error, retry } = usePublicCollection<Project>("projects");
   const { items: generationItems } = usePublicCollection<Generation>("generations", "published", !compact);
   const [generation, setGeneration] = useState("All");
   const generations = useMemo(() => contentGenerations(items, generationItems), [items, generationItems]);
@@ -122,7 +126,7 @@ export function ProjectCollection({ compact = false }: { compact?: boolean }) {
   const visibleItems = compact ? filtered.slice(0, 2) : filtered;
 
   if (loading) return <CollectionLoading text="프로젝트를 불러오는 중입니다." />;
-  if (error) return <CollectionError text="프로젝트를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." />;
+  if (error) return <CollectionError text="프로젝트를 불러오지 못했습니다." onRetry={retry} />;
   return (
     <div>
       {!compact && <GenerationSelect label="프로젝트 기수" value={generation} options={generations} onChange={setGeneration} />}
@@ -155,24 +159,26 @@ function GenerationSelect({ label, value, options, onChange }: { label: string; 
 function contentGenerations(items: Array<{ generation?: string }>, generations: Generation[]): [string, string][] {
   const labels = new Map(generations.filter((item) => item.id !== "current").map((item) => [item.id, item.label || item.id]));
   for (const item of items) if (item.generation && !labels.has(item.generation)) labels.set(item.generation, item.generation);
-  return [...labels].sort(([a], [b]) => a.localeCompare(b, "ko"));
+  const order = new Map(generations.map((item) => [item.id, item.order ?? 999]));
+  return [...labels].sort(([a], [b]) => (order.get(a) ?? 999) - (order.get(b) ?? 999) || a.localeCompare(b, "ko"));
 }
 
 export function PeopleCollection() {
-  const { items, loading, error } = usePublicCollection<Member>("members", "visible");
+  const { items, loading, error, retry } = usePublicCollection<Member>("members", "visible");
   const { items: generationItems } = usePublicCollection<Generation>("generations");
   const [generation, setGeneration] = useState("All");
   const generations = useMemo(() => {
     const labels = new Map(generationItems.map((item) => [item.id === "current" && item.generationId ? item.generationId : item.id, item.label]));
     for (const member of items) for (const id of memberGenerations(member)) if (!labels.has(id)) labels.set(id, id);
-    return [...labels].sort(([a], [b]) => a.localeCompare(b, "ko"));
+    const order = new Map(generationItems.map((item) => [item.id, item.order ?? 999]));
+    return [...labels].sort(([a], [b]) => (order.get(a) ?? 999) - (order.get(b) ?? 999) || a.localeCompare(b, "ko"));
   }, [generationItems, items]);
   const sorted = useMemo(() => [...items]
     .filter((member) => generation === "All" || memberGenerations(member).includes(generation))
     .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.name.localeCompare(b.name, "ko")), [generation, items]);
 
   if (loading) return <CollectionLoading text="구성원을 불러오는 중입니다." />;
-  if (error) return <CollectionError text="구성원 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." />;
+  if (error) return <CollectionError text="구성원 정보를 불러오지 못했습니다." onRetry={retry} />;
 
   return (
     <div>
@@ -184,10 +190,12 @@ export function PeopleCollection() {
       )}
       {sorted.length ? (
         <div className="people-grid">
-          {sorted.map((member) => (
+          {sorted.map((member) => {
+            const { role, position } = memberRoleForGeneration(member, generation);
+            return (
             <article className="person-card" key={member.id}>
               <MemberAvatar key={member.github || "avatar"} member={member} />
-              <div><p>{member.role}</p><h2>{member.name}</h2>{member.position && <span>{member.position}</span>}</div>
+              <div><p>{role}</p><h2>{member.name}</h2>{position && <span>{position}</span>}</div>
               {memberGenerations(member).length > 0 && <ul className="member-generations" aria-label={`${member.name} 활동 기수`}>{memberGenerations(member).map((id) => <li key={id}>{generations.find(([generationId]) => generationId === id)?.[1] || id}</li>)}</ul>}
               {member.description && <p className="person-description">{member.description}</p>}
               <div className="social-links">
@@ -196,7 +204,7 @@ export function PeopleCollection() {
                 {safeHref(member.website) && <a href={safeHref(member.website)!} target="_blank" rel="noopener noreferrer">Website ↗</a>}
               </div>
             </article>
-          ))}
+          );})}
         </div>
       ) : (
         <EmptyState headingLevel="h2" title={generation === "All" ? "구성원 소개를 준비하고 있어요" : "이 기수의 공개 프로필이 없습니다"} text={generation === "All" ? "공개 동의를 마친 프로필부터 차례로 소개합니다." : "다른 활동 기수를 선택해 보세요."} />
@@ -214,35 +222,41 @@ function MemberAvatar({ member }: { member: Member }) {
 }
 
 export function RecruitmentPanel({ compact = false }: { compact?: boolean }) {
-  const { recruitment, loading, error } = useRecruitment();
+  const { recruitment, loading, error, retry } = useRecruitment();
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const Heading = compact ? "h2" : "h1";
 
   if (loading) return <div className={`recruitment-panel ${compact ? "compact" : ""}`} aria-busy="true"><p>모집 정보를 불러오는 중입니다.</p></div>;
-  if (error) return <div className={`recruitment-panel ${compact ? "compact" : ""}`} role="alert"><p>모집 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</p></div>;
+  if (error) return <div className={`recruitment-panel ${compact ? "compact" : ""}`} role="alert"><div><p>모집 정보를 불러오지 못했습니다.</p><button className="button button-light" type="button" onClick={retry}>다시 시도</button></div></div>;
   if (!recruitment) return <div className={`recruitment-panel ${compact ? "compact" : ""}`}><div><span className="status-badge status-closed">현재 모집 없음</span><Heading>다음 모집을 준비하고 있습니다</Heading><p>확정된 모집 일정과 지원 방법은 이 페이지에서 안내합니다.</p></div></div>;
 
-  const status = recruitmentStatuses[recruitment.status] ?? recruitmentStatuses.closed;
+  const effectiveStatus = effectiveRecruitmentStatus(recruitment, now);
+  const status = recruitmentStatuses[effectiveStatus];
   const date = formatDateRange(recruitment.startDate, recruitment.endDate);
   return (
     <div className={`recruitment-panel ${compact ? "compact" : ""}`}>
       <div>
-        <span className={`status-badge status-${recruitment.status}`}>{status[0]}</span>
+        <span className={`status-badge status-${effectiveStatus}`}>{status[0]}</span>
         <p className="eyebrow">{recruitment.id}</p>
         <Heading>{recruitment.title}</Heading>
         <p>{recruitment.description}</p>
         {date && <p className="recruitment-date">{date}</p>}
       </div>
-      {recruitment.status === "open" && safeHref(recruitment.applyUrl)
-        ? <a className="button button-light" href={safeHref(recruitment.applyUrl)!} target="_blank" rel="noopener noreferrer" onClick={() => track("recruit_apply_click")}>{status[1]} <span aria-hidden="true">↗</span></a>
+      {effectiveStatus === "open" && safeHref(recruitment.applyUrl)
+        ? <a className="button button-light" href={safeHref(recruitment.applyUrl)!} target="_blank" rel="noopener noreferrer" onClick={() => trackAnalyticsEvent("recruit_apply_click")}>{status[1]} <span aria-hidden="true">↗</span></a>
         : <span className="button button-disabled" aria-disabled="true">{status[1]}</span>}
     </div>
   );
 }
 
 export function RecruitmentDetails() {
-  const { recruitment, loading, error } = useRecruitment();
+  const { recruitment, loading, error, retry } = useRecruitment();
   if (loading) return <CollectionLoading text="모집 절차를 불러오는 중입니다." />;
-  if (error) return <CollectionError text="모집 절차를 불러오지 못했습니다." />;
+  if (error) return <CollectionError text="모집 절차를 불러오지 못했습니다." onRetry={retry} />;
   if (!recruitment) return <EmptyState headingLevel="h3" title="공개된 모집 절차가 없습니다" text="모집이 확정되면 절차와 FAQ를 안내합니다." />;
 
   return (
@@ -256,9 +270,9 @@ export function RecruitmentDetails() {
 }
 
 export function RecruitmentRoles() {
-  const { recruitment, loading, error } = useRecruitment();
+  const { recruitment, loading, error, retry } = useRecruitment();
   if (loading) return <CollectionLoading text="모집 역할을 불러오는 중입니다." />;
-  if (error) return <CollectionError text="모집 역할을 불러오지 못했습니다." />;
+  if (error) return <CollectionError text="모집 역할을 불러오지 못했습니다." onRetry={retry} />;
   const roles = recruitment?.roles?.filter((role) => role === "Member" || role === "Team Member") ?? [];
   if (!roles.length) return <EmptyState headingLevel="h3" title="공개된 모집 역할이 없습니다" text="모집 역할이 확정되면 안내합니다." />;
   return <div className="role-cards">{roles.map((role) => <article key={role}><span>{role.toUpperCase()}</span><h3>{role}</h3><p>{roleDescription(role)}</p></article>)}</div>;
@@ -273,8 +287,8 @@ function CollectionLoading({ text }: { text: string }) {
   return <p className="collection-state" role="status" aria-busy="true">{text}</p>;
 }
 
-function CollectionError({ text }: { text: string }) {
-  return <p className="inline-notice" role="alert">{text}</p>;
+function CollectionError({ text, onRetry }: { text: string; onRetry: () => void }) {
+  return <div className="inline-notice" role="alert"><p>{text}</p><button className="button button-secondary" type="button" onClick={onRetry}>다시 시도</button></div>;
 }
 
 function memberGenerations(member: Member) {
@@ -292,10 +306,6 @@ function compareProjects(a: Project, b: Project) {
 function formatDateRange(start?: string, end?: string) {
   if (start && end) return `${start} — ${end}`;
   return start || end || "";
-}
-
-function track(event: string) {
-  (window as Window & { gtag?: (...args: unknown[]) => void }).gtag?.("event", event);
 }
 
 function safeHref(value?: string) {

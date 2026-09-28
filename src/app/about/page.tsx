@@ -18,8 +18,9 @@ export default function AboutPage() {
         <p className="eyebrow">What is GDG on Campus?</p>
         <div>
           <h2>학교 안의 배움을<br />더 넓은 세상과 연결합니다.</h2>
-          <p>Google Developer Groups on Campus는 대학생이 다양한 기술을 탐구하고, 동료와 프로젝트를 만들고, 개발자 커뮤니티와 교류할 수 있도록 돕는 프로그램입니다.</p>
-          <p>GDGoC Sahmyook은 이 기반 위에서 삼육대학교 구성원에게 지속 가능한 학습과 협업의 장을 만듭니다.</p>
+          <p>Google Developer Groups on Campus는 학생들이 직접 기술을 배우고 실습하며 개발자 커뮤니티와 연결되는 프로그램입니다.</p>
+          <p>GDGoC Sahmyook은 삼육대학교의 독립적인 챕터입니다. 이곳에서는 챕터가 공개한 활동, 프로젝트와 사람들의 기록을 소개합니다.</p>
+          <p><a className="text-link" href="https://gdg.community.dev/gdg-on-campus-sahmyook-university-seoul-south-korea/" target="_blank" rel="noopener noreferrer">공식 챕터에서 행사 확인하기 ↗</a></p>
           <div className="program-logo"><BrandLogo variant="gdgocHorizontal" /></div>
         </div>
       </section>

@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import Script from "next/script";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { setAnalyticsConsent, useAnalyticsConsent } from "@/lib/analytics-consent";
 
 export function Analytics() {
   const id = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
@@ -10,9 +12,10 @@ export function Analytics() {
   const query = useSearchParams().toString();
   const initialized = useRef(false);
   const previousUrl = useRef<string | null>(null);
+  const consent = useAnalyticsConsent();
 
   useEffect(() => {
-    if (!id || !/^G-[A-Z0-9]+$/.test(id) || pathname?.startsWith("/admin")) return;
+    if (consent !== "granted" || !id || !/^G-[A-Z0-9]+$/.test(id) || pathname?.startsWith("/admin")) return;
     const analyticsWindow = window as Window & { dataLayer?: unknown[]; gtag?: (...args: unknown[]) => void };
     if (!initialized.current) {
       analyticsWindow.dataLayer ||= [];
@@ -32,9 +35,15 @@ export function Analytics() {
       page_referrer: previousUrl.current || document.referrer,
     });
     previousUrl.current = currentUrl;
-  }, [id, pathname, query]);
+  }, [consent, id, pathname, query]);
 
   if (!id || !/^G-[A-Z0-9]+$/.test(id) || pathname?.startsWith("/admin")) return null;
 
-  return <Script src={`https://www.googletagmanager.com/gtag/js?id=${id}`} strategy="afterInteractive" />;
+  return <>
+    {consent === null && <div className="analytics-consent" role="region" aria-label="방문 분석 설정">
+      <div><strong>방문 분석을 허용하시겠어요?</strong><p>사이트 개선을 위해 Google Analytics를 사용합니다. 동의 전에는 분석 스크립트를 불러오지 않습니다. <Link href="/privacy/">자세히 보기</Link></p></div>
+      <div className="analytics-consent-actions"><button type="button" onClick={() => setAnalyticsConsent("denied")}>거부</button><button type="button" className="button" onClick={() => setAnalyticsConsent("granted")}>동의</button></div>
+    </div>}
+    {consent === "granted" && <Script src={`https://www.googletagmanager.com/gtag/js?id=${id}`} strategy="afterInteractive" />}
+  </>;
 }

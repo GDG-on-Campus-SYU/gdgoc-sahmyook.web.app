@@ -92,6 +92,17 @@ test("editors can update legacy member documents during migration", async () => 
   })));
 });
 
+test("members keep one profile with generation-specific role history", async () => {
+  await seed();
+  const editor = environment.authenticatedContext("editor-user").firestore();
+  await assertSucceeds(setDoc(doc(editor, "members", "history"), member({
+    generationHistory: [{ generationId: "2026-2", role: "Member", position: "웹" }],
+  })));
+  await assertFails(setDoc(doc(editor, "members", "oversized-history"), member({
+    generationHistory: Array.from({ length: 21 }, () => ({ generationId: "2026-2", role: "Member" })),
+  })));
+});
+
 test("invalid fields, enums and date ranges are rejected", async () => {
   await seed();
   const editor = environment.authenticatedContext("editor-user").firestore();

@@ -1,7 +1,7 @@
 export type AdminField = {
   name: string;
   label: string;
-  kind?: "text" | "url" | "textarea" | "date" | "number" | "checkbox" | "select" | "list" | "faq" | "generation-list" | "multi-select";
+  kind?: "text" | "url" | "textarea" | "date" | "number" | "checkbox" | "select" | "list" | "faq" | "generation-list" | "generation-history" | "multi-select";
   required?: boolean;
   options?: string[];
 };
@@ -60,6 +60,7 @@ export const adminCollections: AdminCollection[] = [
       { name: "role", label: "역할", kind: "select", required: true, options: ["Organizer", "Team Member", "Member"] },
       { name: "position", label: "관심 분야 / 담당" },
       { name: "activityGenerations", label: "활동 기수", kind: "generation-list", required: true },
+      { name: "generationHistory", label: "기수별 역할·담당", kind: "generation-history" },
       { name: "description", label: "소개", kind: "textarea" },
       { name: "github", label: "GitHub 프로필 URL", kind: "url" },
       { name: "linkedin", label: "LinkedIn URL", kind: "url" },

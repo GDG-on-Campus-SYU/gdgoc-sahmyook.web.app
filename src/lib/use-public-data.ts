@@ -12,6 +12,7 @@ export function usePublicCollection<T>(
   const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(Boolean(db) && enabled);
   const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!db || !enabled) return;
@@ -26,13 +27,14 @@ export function usePublicCollection<T>(
       .finally(() => active && setLoading(false));
 
     return () => { active = false; };
-  }, [collectionName, visibilityField, enabled]);
+  }, [collectionName, visibilityField, enabled, attempt]);
 
-  return { items, loading, error };
+  return { items, loading, error, retry: () => { setError(false); setLoading(true); setAttempt((value) => value + 1); } };
 }
 
 export function usePublicDocument<T>(collectionName: string, id: string | null) {
   const [result, setResult] = useState<{ key: string; item?: T; error: boolean }>();
+  const [attempt, setAttempt] = useState(0);
   const key = `${collectionName}/${id ?? ""}`;
 
   useEffect(() => {
@@ -57,13 +59,15 @@ export function usePublicDocument<T>(collectionName: string, id: string | null) 
       });
 
     return () => { active = false; };
-  }, [collectionName, id, key]);
+  }, [collectionName, id, key, attempt]);
 
-  if (!db) return { item: undefined, loading: false, error: false };
-  if (!id) return { item: undefined, loading: false, error: false };
+  const retry = () => { setResult(undefined); setAttempt((value) => value + 1); };
+  if (!db) return { item: undefined, loading: false, error: false, retry };
+  if (!id) return { item: undefined, loading: false, error: false, retry };
   return {
     item: result?.key === key ? result.item : undefined,
     loading: result?.key !== key,
     error: result?.key === key && result.error,
+    retry,
   };
 }

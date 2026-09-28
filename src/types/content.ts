@@ -41,6 +41,7 @@ export type Member = {
   position?: string;
   generation?: string;
   activityGenerations?: string[];
+  generationHistory?: Array<{ generationId: string; role: Member["role"]; position?: string }>;
   description?: string;
   github?: string;
   linkedin?: string;

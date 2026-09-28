@@ -65,7 +65,7 @@ service cloud.firestore {
 
     function isValidMember(data) {
       return data.keys().hasOnly([
-          'name', 'role', 'position', 'generation', 'activityGenerations', 'description',
+          'name', 'role', 'position', 'generation', 'activityGenerations', 'generationHistory', 'description',
           'github', 'linkedin', 'website', 'profileImage', 'visible', 'order', 'consentConfirmedAt',
           'consentConfirmedBy', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy',
           'archivedAt', 'archivedBy'
@@ -76,6 +76,7 @@ service cloud.firestore {
         && (!('position' in data) || data.position is string)
         && (!('generation' in data) || data.generation is string)
         && (!('activityGenerations' in data) || data.activityGenerations is list)
+        && (!('generationHistory' in data) || (data.generationHistory is list && data.generationHistory.size() <= 20))
         && (('activityGenerations' in data && data.activityGenerations.size() > 0)
           || ('generation' in data && data.generation != ''))
         && (!('description' in data) || data.description is string)

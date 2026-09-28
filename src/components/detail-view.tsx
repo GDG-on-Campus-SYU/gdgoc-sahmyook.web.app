@@ -5,14 +5,15 @@ import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { usePublicDocument } from "@/lib/use-public-data";
 import type { Activity, Generation, Project } from "@/types/content";
+import { trackAnalyticsEvent } from "@/lib/analytics-consent";
 
 export function ActivityDetail() {
   const slug = useSearchParams().get("slug");
-  const { item: activity, loading, error } = usePublicDocument<Activity>("activities", slug);
+  const { item: activity, loading, error, retry } = usePublicDocument<Activity>("activities", slug);
   useDocumentTitle(activity?.title);
 
   if (loading) return <DetailLoading />;
-  if (error) return <DetailError href="/activities" label="활동 목록" />;
+  if (error) return <DetailError href="/activities" label="활동 목록" onRetry={retry} />;
   if (!activity) return <DetailMissing href="/activities" label="활동 목록" />;
 
   return (
@@ -39,15 +40,15 @@ export function ActivityDetail() {
 
 export function ProjectDetail() {
   const slug = useSearchParams().get("slug");
-  const { item: project, loading, error } = usePublicDocument<Project>("projects", slug);
+  const { item: project, loading, error, retry } = usePublicDocument<Project>("projects", slug);
   useDocumentTitle(project?.title);
 
   if (loading) return <DetailLoading />;
-  if (error) return <DetailError href="/projects" label="프로젝트 목록" />;
+  if (error) return <DetailError href="/projects" label="프로젝트 목록" onRetry={retry} />;
   if (!project) return <DetailMissing href="/projects" label="프로젝트 목록" />;
 
   const sections = [
-    ["Problem", project.problem], ["Solution", project.solution || project.description], ["Result", project.result],
+    ["Description", project.description], ["Problem", project.problem], ["Solution", project.solution], ["Result", project.result],
   ].filter(([, value]) => value);
 
   return (
@@ -63,7 +64,7 @@ export function ProjectDetail() {
         {sections.length ? sections.map(([title, value]) => <section key={title}><h2>{title}</h2><p>{value}</p></section>) : <p>검증된 프로젝트 자료를 정리한 뒤 공개합니다.</p>}
         {Boolean(project.members?.length) && <section><h2>Team</h2><ul className="tag-list" aria-label="프로젝트 참여 구성원">{project.members?.map((member) => <li key={member}>{member}</li>)}</ul></section>}
         <div className="detail-actions">
-          {safeHref(project.github) && <a className="button" href={safeHref(project.github)!} target="_blank" rel="noreferrer" onClick={() => track("project_github_click")}>GitHub ↗</a>}
+          {safeHref(project.github) && <a className="button" href={safeHref(project.github)!} target="_blank" rel="noreferrer" onClick={() => trackAnalyticsEvent("project_github_click")}>GitHub ↗</a>}
           {safeHref(project.demo) && <a className="button button-secondary" href={safeHref(project.demo)!} target="_blank" rel="noreferrer">Live demo ↗</a>}
         </div>
       </div>
@@ -88,12 +89,8 @@ function DetailMissing({ href, label }: { href: string; label: string }) {
   return <div className="detail-state container"><h1>콘텐츠를 찾을 수 없습니다</h1><p>주소가 올바른지 확인해 주세요.</p><Link className="button" href={href}>{label}으로 돌아가기</Link></div>;
 }
 
-function DetailError({ href, label }: { href: string; label: string }) {
-  return <div className="detail-state container" role="alert"><h1>콘텐츠를 불러오지 못했습니다</h1><p>잠시 후 다시 시도해 주세요.</p><Link className="button" href={href}>{label}으로 돌아가기</Link></div>;
-}
-
-function track(event: string) {
-  (window as Window & { gtag?: (...args: unknown[]) => void }).gtag?.("event", event);
+function DetailError({ href, label, onRetry }: { href: string; label: string; onRetry: () => void }) {
+  return <div className="detail-state container" role="alert"><h1>콘텐츠를 불러오지 못했습니다</h1><p>잠시 후 다시 시도해 주세요.</p><button className="button" type="button" onClick={onRetry}>다시 시도</button><Link className="button button-secondary" href={href}>{label}으로 돌아가기</Link></div>;
 }
 
 function safeHref(value?: string) {
