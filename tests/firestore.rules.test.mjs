@@ -82,6 +82,16 @@ test("editors can write valid content and archive without deleting", async () =>
   await assertFails(getDoc(doc(anonymous, "activities", "new-activity")));
 });
 
+test("editors can update legacy member documents during migration", async () => {
+  await seed();
+  const editor = environment.authenticatedContext("editor-user").firestore();
+  await assertSucceeds(setDoc(doc(editor, "members", "legacy"), member({
+    generation: "2026-2",
+    activityGenerations: ["2026-2"],
+    profileImage: "https://example.com/legacy.png",
+  })));
+});
+
 test("invalid fields, enums and date ranges are rejected", async () => {
   await seed();
   const editor = environment.authenticatedContext("editor-user").firestore();
@@ -95,6 +105,22 @@ test("invalid fields, enums and date ranges are rejected", async () => {
     activityGenerations: ["2026-2"],
     visible: true,
   }));
+  await assertFails(setDoc(doc(editor, "recruitment", "invalid-url"), {
+    title: "모집",
+    description: "설명",
+    status: "open",
+    applyUrl: "ftp://example.com",
+    roles: ["Member"],
+    published: false,
+  }));
+});
+
+test("generation catalog entries can be archived without deletion", async () => {
+  await seed();
+  const editor = environment.authenticatedContext("editor-user").firestore();
+  const target = doc(editor, "generations", "2026-2");
+  await assertSucceeds(setDoc(target, { label: "2026년 2기", published: true }));
+  await assertSucceeds(setDoc(target, { label: "2026년 2기", published: false, archivedAt: Timestamp.now(), archivedBy: "editor-user" }));
 });
 
 test("current generation is public but only editors can change it", async () => {
@@ -103,7 +129,7 @@ test("current generation is public but only editors can change it", async () => 
   const memberUser = environment.authenticatedContext("member-user").firestore();
   const anonymous = environment.unauthenticatedContext().firestore();
   const target = doc(editor, "generations", "current");
-  const payload = { generationId: "2026-2", label: "2026년 2기", updatedAt: Timestamp.now(), updatedBy: "editor-user" };
+  const payload = { generationId: "2026-2", label: "2026년 2기", published: true, updatedAt: Timestamp.now(), updatedBy: "editor-user" };
 
   await assertSucceeds(setDoc(target, payload));
   await assertSucceeds(getDoc(doc(anonymous, "generations", "current")));
