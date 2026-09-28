@@ -62,8 +62,8 @@ h3 { font-size: clamp(1.5rem, 2.1vw, 1.75rem); }
 .nav-shell { height: 100%; display: flex; align-items: center; justify-content: space-between; }
 .brand-link { display: block; border-radius: 6px; }
 .brand-logo { display: inline-flex; align-items: center; gap: 12px; max-width: 100%; }
-.brand-symbol { --symbol-width: 48px; position: relative; display: block; flex: none; width: var(--symbol-width); height: calc(var(--symbol-width) * .49); overflow: hidden; }
-.brand-symbol img { position: absolute; top: calc(var(--symbol-width) * -.455); left: calc(var(--symbol-width) * -.111); width: calc(var(--symbol-width) * 1.225); max-width: none; height: auto; }
+.brand-symbol { --symbol-width: 48px; position: relative; display: block; flex: none; width: var(--symbol-width); height: calc(var(--symbol-width) * .51); overflow: hidden; }
+.brand-symbol img { position: absolute; top: calc(var(--symbol-width) * -.36); left: calc(var(--symbol-width) * -.111); width: calc(var(--symbol-width) * 1.225); max-width: none; height: auto; }
 .brand-wordmark { display: grid; gap: 1px; line-height: 1.25; white-space: nowrap; }
 .brand-wordmark strong { font-size: .95rem; font-weight: 750; letter-spacing: -.035em; }
 .brand-wordmark > span { color: var(--muted); font-size: .7rem; font-weight: 650; }
