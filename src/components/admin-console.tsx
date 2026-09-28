@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoogleAuthProvider, User, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
-import { addDoc, collection, deleteField, doc, getDoc, getDocs, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import { collection, deleteField, doc, getDoc, getDocs, serverTimestamp, writeBatch } from "firebase/firestore";
 import { adminCollections, AdminCollection, AdminField } from "@/lib/admin-config";
 import { auth, db, isFirebaseConfigured } from "@/lib/firebase";
 import { useCurrentGeneration } from "@/lib/use-current-generation";
@@ -199,13 +199,17 @@ function CollectionEditor({ config, userId, dirty, onDirtyChange }: { config: Ad
     }
     setLoadError("");
     try {
-      await updateDoc(doc(db, config.name, item.id), {
+      const batch = writeBatch(db);
+      batch.update(doc(db, config.name, item.id), {
         [publicField]: false,
         archivedAt: serverTimestamp(),
-        archivedBy: userId,
         updatedAt: serverTimestamp(),
-        updatedBy: userId,
+        createdBy: deleteField(),
+        updatedBy: deleteField(),
+        archivedBy: deleteField(),
       });
+      batch.set(doc(db, "internalMetadata", config.name, "documents", item.id), { archivedBy: userId, updatedBy: userId }, { merge: true });
+      await batch.commit();
       setMessage("보관 처리했습니다.");
       await load();
     } catch { setLoadError("보관 처리하지 못했습니다. Firestore 권한과 문서 필드를 확인해 주세요."); }
@@ -215,13 +219,17 @@ function CollectionEditor({ config, userId, dirty, onDirtyChange }: { config: Ad
     if (!db) return;
     setLoadError("");
     try {
-      await updateDoc(doc(db, config.name, item.id), {
+      const batch = writeBatch(db);
+      batch.update(doc(db, config.name, item.id), {
         [publicField]: false,
         archivedAt: deleteField(),
-        archivedBy: deleteField(),
         updatedAt: serverTimestamp(),
-        updatedBy: userId,
+        createdBy: deleteField(),
+        updatedBy: deleteField(),
+        archivedBy: deleteField(),
       });
+      batch.set(doc(db, "internalMetadata", config.name, "documents", item.id), { archivedBy: deleteField(), updatedBy: userId }, { merge: true });
+      await batch.commit();
       setMessage("비공개 초안으로 복원했습니다.");
       await load();
     } catch { setLoadError("복원하지 못했습니다. Firestore 권한과 문서 필드를 확인해 주세요."); }
@@ -235,13 +243,15 @@ function CollectionEditor({ config, userId, dirty, onDirtyChange }: { config: Ad
     }
     setLoadError("");
     try {
-      await setDoc(doc(db, "generations", "current"), {
+      const batch = writeBatch(db);
+      batch.set(doc(db, "generations", "current"), {
         generationId: item.id,
         label: String(item.label || item.id),
         published: true,
         updatedAt: serverTimestamp(),
-        updatedBy: userId,
       });
+      batch.set(doc(db, "internalMetadata", "generations", "documents", "current"), { updatedBy: userId }, { merge: true });
+      await batch.commit();
       setMessage("현재 기수를 변경했습니다.");
       await load();
     } catch { setLoadError("현재 기수를 변경하지 못했습니다. Firestore 권한을 확인해 주세요."); }
@@ -428,22 +438,27 @@ function EditorForm({ config, document, userId, onCancel, onSaved, onDirtyChange
           return;
         }
       }
-      if (config.name === "members" && payload.visible === true && (!document?.visible || !document?.consentConfirmedAt)) {
-        payload.consentConfirmedAt = serverTimestamp();
-        payload.consentConfirmedBy = userId;
-      }
-      const audit = { updatedAt: serverTimestamp(), updatedBy: userId };
-      if (document) await setDoc(doc(db, config.name, document.id), { ...payload, ...audit }, { merge: true });
-      else if (documentId.trim()) {
-        const target = doc(db, config.name, documentId.trim());
+      const target = document ? doc(db, config.name, document.id) : documentId.trim()
+        ? doc(db, config.name, documentId.trim()) : doc(collection(db, config.name));
+      if (!document && documentId.trim()) {
         if ((await getDoc(target)).exists()) {
           fail("같은 문서 ID가 이미 있습니다. 기존 항목을 수정해 주세요.", isSlugDocument ? "slug" : "documentId");
           setSaving(false);
           return;
         }
-        await setDoc(target, { ...payload, ...audit, createdAt: serverTimestamp(), createdBy: userId });
       }
-      else await addDoc(collection(db, config.name), { ...payload, ...audit, createdAt: serverTimestamp(), createdBy: userId });
+      const batch = writeBatch(db);
+      batch.set(target, document ? {
+        ...payload, updatedAt: serverTimestamp(), createdBy: deleteField(), updatedBy: deleteField(), archivedBy: deleteField(),
+        ...(config.name === "members" ? { consentConfirmedAt: deleteField(), consentConfirmedBy: deleteField() } : {}),
+      } : { ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: Boolean(document) });
+      batch.set(doc(db, "internalMetadata", config.name, "documents", target.id), {
+        updatedBy: userId,
+        ...(!document ? { createdBy: userId } : {}),
+        ...(config.name === "members" && payload.visible === true && !document?.visible
+          ? { consentConfirmedAt: serverTimestamp(), consentConfirmedBy: userId } : {}),
+      }, { merge: true });
+      await batch.commit();
       onSaved();
     } catch { fail("저장하지 못했습니다. 입력값과 Firestore 권한을 확인해 주세요."); setSaving(false); }
   }
