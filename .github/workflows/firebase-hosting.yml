@@ -40,6 +40,7 @@ jobs:
           NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
 
   deploy:
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     needs: validate
     runs-on: ubuntu-24.04
     permissions:
