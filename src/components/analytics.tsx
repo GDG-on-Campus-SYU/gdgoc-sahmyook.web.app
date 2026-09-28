@@ -41,7 +41,7 @@ export function Analytics() {
 
   return <>
     {consent === null && <div className="analytics-consent" role="region" aria-label="방문 분석 설정">
-      <div><strong>방문 분석을 허용하시겠어요?</strong><p>사이트 개선을 위해 Google Analytics를 사용합니다. 동의 전에는 분석 스크립트를 불러오지 않습니다. <Link href="/privacy/">자세히 보기</Link></p></div>
+      <div><strong>방문 분석을 허용하시겠어요?</strong><p>사이트 개선용 Google Analytics는 동의 후에만 실행됩니다. <Link href="/privacy/">자세히 보기</Link></p></div>
       <div className="analytics-consent-actions"><button type="button" onClick={() => setAnalyticsConsent("denied")}>거부</button><button type="button" className="button" onClick={() => setAnalyticsConsent("granted")}>동의</button></div>
     </div>}
     {consent === "granted" && <Script src={`https://www.googletagmanager.com/gtag/js?id=${id}`} strategy="afterInteractive" />}

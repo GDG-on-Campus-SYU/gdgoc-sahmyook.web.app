@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Analytics } from "@/components/analytics";
 import { SiteFooter, SiteHeader } from "@/components/site-shell";
+import "./fonts/pretendard-v1.3.9/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
     description: "Connect. Learn. Build. Together.",
     type: "website",
     locale: "ko_KR",
-    images: [{ url: "/brand/gdgoc-sahmyook-horizontal-trimmed.png", width: 1076, height: 164, alt: "GDGoC Sahmyook" }],
+    images: [{ url: "/brand/gdgoc-symbol-transparent.png", width: 1254, height: 1254, alt: "GDGoC Sahmyook 심벌" }],
   },
 };
 

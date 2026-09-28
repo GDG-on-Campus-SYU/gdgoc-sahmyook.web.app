@@ -34,10 +34,9 @@ export default function Home() {
           <svg viewBox="0 0 600 560" role="presentation">
             <path className="path-blue" d="M40 410 C160 410 130 135 285 135" />
             <path className="path-red" d="M285 135 C425 135 395 300 550 300" />
-            <path className="path-green" d="M120 495 C300 495 245 300 550 300" />
-            <path className="path-yellow" d="M40 410 C200 410 260 470 470 470" />
+            <path className="path-yellow" d="M120 495 C300 495 245 300 550 300" />
+            <path className="path-green" d="M40 410 C200 410 260 470 470 470" />
           </svg>
-          <div className="map-center"><strong>SYU</strong><span>37.6425° N</span></div>
         </div>
       </section>
 
@@ -55,11 +54,10 @@ export default function Home() {
       <section className="section container">
         <SectionHeading eyebrow="What we do" title="배움이 결과물이 되는 네 가지 방식" description="GDGoC Sahmyook의 활동은 배우고, 만들고, 나누고, 연결되는 하나의 흐름입니다." />
         <div className="value-bento">
-          {values.map(([title, text, color], index) => (
-            <article className={`value-card value-${color} value-${index + 1}`} key={title}>
-              <span className="value-dot" />
+          {values.map(([title, text, color]) => (
+            <article className={`value-card value-${color}`} key={title}>
+              <span className="value-dot" aria-hidden="true" />
               <div><h3>{title}</h3><p>{text}</p></div>
-              <span className="value-arrow" aria-hidden="true">↗</span>
             </article>
           ))}
         </div>

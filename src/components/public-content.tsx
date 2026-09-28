@@ -15,9 +15,9 @@ import type { Activity, Generation, Member, Project, Recruitment } from "@/types
 
 const categories = ["All", "Study", "Session", "Project", "Networking", "Hackathon", "Collaboration"];
 const recruitmentStatuses = {
-  upcoming: ["모집 예정", "Recruitment coming soon"],
-  open: ["모집 중", "Apply now"],
-  closed: ["모집 종료", "Recruitment closed"],
+  upcoming: ["모집 예정", "모집 시작 전입니다"],
+  open: ["모집 중", "지원하기"],
+  closed: ["모집 종료", "다음 모집을 기다려 주세요"],
 } as const;
 let recruitmentRequest: Promise<Recruitment | undefined> | null = null;
 
@@ -57,10 +57,6 @@ function useRecruitment() {
   return { recruitment, loading, error, retry: () => { setError(false); setLoading(true); setAttempt((value) => value + 1); } };
 }
 
-function Media({ label, shortLabel = label.slice(0, 1) }: { label: string; shortLabel?: string }) {
-  return <div className="card-image media-placeholder" aria-label={label} role="img"><span>{shortLabel}</span><i /></div>;
-}
-
 export function PeopleHero() {
   return <PageHero eyebrow="People" title="커뮤니티를 만드는 사람들" description="프로필과 외부 링크는 본인이 공개에 동의한 경우에만 표시합니다." />;
 }
@@ -84,18 +80,18 @@ export function ActivityCollection({ compact = false }: { compact?: boolean }) {
       {!compact && (
         <>
           <GenerationSelect label="활동 기수" value={generation} options={generations} onChange={setGeneration} />
-          <div className="filter-row" role="group" aria-label="활동 카테고리 필터">
+          <label className="generation-filter mobile-filter"><span>활동 카테고리</span><select value={category} onChange={(event) => setCategory(event.target.value)}>{categories.map((item) => <option key={item} value={item}>{item === "All" ? "전체" : item}</option>)}</select></label>
+          <div className="filter-row desktop-filter" role="group" aria-label="활동 카테고리 필터">
             {categories.map((item) => <button key={item} className={category === item ? "active" : ""} aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>)}
           </div>
         </>
       )}
       {visibleItems.length ? (
         <div className="activity-grid">
-          {visibleItems.map((activity, index) => {
+          {visibleItems.map((activity) => {
             const Heading = compact ? "h3" : "h2";
             return (
-              <article className={`activity-card accent-${index % 4}`} key={activity.id}>
-                <Media label={`${activity.category} 활동`} />
+              <article className="activity-card" key={activity.id}>
                 <div className="card-body">
                   <div className="card-meta"><span>{activity.category}</span><span>{activity.status}</span></div>
                   <Heading>{activity.title}</Heading>
@@ -131,11 +127,10 @@ export function ProjectCollection({ compact = false }: { compact?: boolean }) {
     <div>
       {!compact && <GenerationSelect label="프로젝트 기수" value={generation} options={generations} onChange={setGeneration} />}
       {!visibleItems.length ? <EmptyState headingLevel={compact ? "h3" : "h2"} title={generation === "All" ? "아직 공개된 프로젝트가 없습니다" : "이 기수의 공개 프로젝트가 없습니다"} text={generation === "All" ? "프로젝트 기록이 공개되면 이곳에 표시됩니다." : "다른 기수를 선택해 보세요."} /> : <div className="project-list">
-      {visibleItems.map((project, index) => {
+      {visibleItems.map((project) => {
         const Heading = compact ? "h3" : "h2";
         return (
           <article className="project-card" key={project.id}>
-            <div className="project-visual"><Media label={`${project.title} 프로젝트`} shortLabel={String(index + 1).padStart(2, "0")} /></div>
             <div className="project-copy">
               <p className="eyebrow">Project · {generations.find(([id]) => id === project.generation)?.[1] || project.generation}</p>
               <Heading>{project.title}</Heading>
@@ -151,9 +146,9 @@ export function ProjectCollection({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function GenerationSelect({ label, value, options, onChange }: { label: string; value: string; options: [string, string][]; onChange: (value: string) => void }) {
+function GenerationSelect({ label, value, options, onChange, className = "" }: { label: string; value: string; options: [string, string][]; onChange: (value: string) => void; className?: string }) {
   if (!options.length) return null;
-  return <label className="generation-filter"><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}><option value="All">전체</option>{options.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>;
+  return <label className={`generation-filter ${className}`}><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}><option value="All">전체</option>{options.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>;
 }
 
 function contentGenerations(items: Array<{ generation?: string }>, generations: Generation[]): [string, string][] {
@@ -183,10 +178,13 @@ export function PeopleCollection() {
   return (
     <div>
       {generations.length > 0 && (
-        <div className="filter-row" role="group" aria-label="활동 기수 필터">
-          <button className={generation === "All" ? "active" : ""} aria-pressed={generation === "All"} onClick={() => setGeneration("All")}>전체</button>
-          {generations.map(([id, label]) => <button key={id} className={generation === id ? "active" : ""} aria-pressed={generation === id} onClick={() => setGeneration(id)}>{label}</button>)}
-        </div>
+        <>
+          <GenerationSelect label="활동 기수" value={generation} options={generations} onChange={setGeneration} className="mobile-filter" />
+          <div className="filter-row desktop-filter" role="group" aria-label="활동 기수 필터">
+            <button className={generation === "All" ? "active" : ""} aria-pressed={generation === "All"} onClick={() => setGeneration("All")}>전체</button>
+            {generations.map(([id, label]) => <button key={id} className={generation === id ? "active" : ""} aria-pressed={generation === id} onClick={() => setGeneration(id)}>{label}</button>)}
+          </div>
+        </>
       )}
       {sorted.length ? (
         <div className="people-grid">
@@ -231,14 +229,15 @@ export function RecruitmentPanel({ compact = false }: { compact?: boolean }) {
   const Heading = compact ? "h2" : "h1";
 
   if (loading) return <div className={`recruitment-panel ${compact ? "compact" : ""}`} aria-busy="true"><p>모집 정보를 불러오는 중입니다.</p></div>;
-  if (error) return <div className={`recruitment-panel ${compact ? "compact" : ""}`} role="alert"><div><p>모집 정보를 불러오지 못했습니다.</p><button className="button button-light" type="button" onClick={retry}>다시 시도</button></div></div>;
+  if (error) return <div className={`recruitment-panel ${compact ? "compact" : ""}`} role="alert"><div><p>모집 정보를 불러오지 못했습니다.</p><button className="button" type="button" onClick={retry}>다시 시도</button></div></div>;
   if (!recruitment) return <div className={`recruitment-panel ${compact ? "compact" : ""}`}><div><span className="status-badge status-closed">현재 모집 없음</span><Heading>다음 모집을 준비하고 있습니다</Heading><p>확정된 모집 일정과 지원 방법은 이 페이지에서 안내합니다.</p></div></div>;
 
   const effectiveStatus = effectiveRecruitmentStatus(recruitment, now);
   const status = recruitmentStatuses[effectiveStatus];
   const date = formatDateRange(recruitment.startDate, recruitment.endDate);
+  const applyUrl = safeHref(recruitment.applyUrl);
   return (
-    <div className={`recruitment-panel ${compact ? "compact" : ""}`}>
+    <div className={`recruitment-panel ${compact ? "compact" : ""} ${effectiveStatus === "open" && applyUrl ? "is-open" : ""}`}>
       <div>
         <span className={`status-badge status-${effectiveStatus}`}>{status[0]}</span>
         <p className="eyebrow">{recruitment.id}</p>
@@ -246,9 +245,9 @@ export function RecruitmentPanel({ compact = false }: { compact?: boolean }) {
         <p>{recruitment.description}</p>
         {date && <p className="recruitment-date">{date}</p>}
       </div>
-      {effectiveStatus === "open" && safeHref(recruitment.applyUrl)
-        ? <a className="button button-light" href={safeHref(recruitment.applyUrl)!} target="_blank" rel="noopener noreferrer" onClick={() => trackAnalyticsEvent("recruit_apply_click")}>{status[1]} <span aria-hidden="true">↗</span></a>
-        : <span className="button button-disabled" aria-disabled="true">{status[1]}</span>}
+      {effectiveStatus === "open" && applyUrl
+        ? <a className="button button-light" href={applyUrl} target="_blank" rel="noopener noreferrer" onClick={() => trackAnalyticsEvent("recruit_apply_click")}>{status[1]} <span aria-hidden="true">↗</span></a>
+        : <span className="recruitment-unavailable">{effectiveStatus === "open" ? "지원 링크 준비 중" : status[1]}</span>}
     </div>
   );
 }

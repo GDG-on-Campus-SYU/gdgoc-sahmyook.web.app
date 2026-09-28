@@ -12,35 +12,22 @@ const navigation = [
   ["Recruit", "/recruit"],
 ] as const;
 
-const logos = {
-  chapterHorizontal: {
-    src: "/brand/gdgoc-sahmyook-horizontal-trimmed.png",
-    className: "logo-chapter-horizontal",
-    width: 1076,
-    height: 164,
-    alt: "Google Developer Group On Campus, Sahmyook University",
-  },
-  gdgocHorizontal: {
-    src: "/brand/gdgoc-on-campus-horizontal-trimmed.png",
-    className: "logo-gdgoc-horizontal",
-    width: 1800,
-    height: 130,
-    alt: "Google Developer Group on Campus",
-  },
-  chapterStacked: {
-    src: "/brand/gdgoc-sahmyook-stacked-trimmed.png",
-    className: "logo-chapter-stacked",
-    width: 802,
-    height: 398,
-    alt: "Google Developer Group On Campus, Sahmyook University",
-  },
+const logoClasses = {
+  chapterHorizontal: "logo-chapter-horizontal",
+  gdgocHorizontal: "logo-gdgoc-horizontal",
+  chapterStacked: "logo-chapter-stacked",
 } as const;
 
-export function BrandLogo({ variant = "chapterHorizontal", priority = false }: { variant?: keyof typeof logos; priority?: boolean }) {
-  const logo = logos[variant];
+export function BrandLogo({ variant = "chapterHorizontal", priority = false }: { variant?: keyof typeof logoClasses; priority?: boolean }) {
   return (
-    <span className={`logo-crop ${logo.className}`}>
-      <Image className="logo-source" src={logo.src} width={logo.width} height={logo.height} alt={logo.alt} priority={priority} />
+    <span className={`brand-logo ${logoClasses[variant]}`}>
+      <span className="brand-symbol" aria-hidden="true">
+        <Image src="/brand/gdgoc-symbol-transparent.png" width={1254} height={1254} alt="" priority={priority} />
+      </span>
+      <span className="brand-wordmark">
+        <strong>Google Developer Group</strong>
+        <span>On Campus{variant === "gdgocHorizontal" ? "" : " · Sahmyook University"}</span>
+      </span>
     </span>
   );
 }
