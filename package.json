@@ -12,7 +12,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test:unit": "node --experimental-strip-types --test tests/recruitment-status.test.mjs tests/member-presentation.test.mjs tests/analytics-consent.test.mjs",
+    "test:unit": "node --experimental-strip-types --test tests/recruitment-status.test.mjs tests/member-presentation.test.mjs tests/analytics-consent.test.mjs tests/migrate-public-metadata.test.mjs",
     "test:rules": "pnpm dlx firebase-tools@15.30.2 emulators:exec --only firestore \"node --test tests/firestore.rules.test.mjs\""
   },
   "dependencies": {
