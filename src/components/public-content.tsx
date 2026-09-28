@@ -63,9 +63,13 @@ export function PeopleHero() {
 
 export function ActivityCollection({ compact = false }: { compact?: boolean }) {
   const { items, loading, error } = usePublicCollection<Activity>("activities");
+  const { items: generationItems } = usePublicCollection<Generation>("generations", "published", !compact);
   const [category, setCategory] = useState("All");
+  const [generation, setGeneration] = useState("All");
+  const generations = useMemo(() => contentGenerations(items, generationItems), [items, generationItems]);
   const sorted = useMemo(() => [...items].sort(compareActivities), [items]);
-  const filtered = useMemo(() => category === "All" ? sorted : sorted.filter((item) => item.category === category), [category, sorted]);
+  const filtered = useMemo(() => sorted.filter((item) =>
+    (category === "All" || item.category === category) && (generation === "All" || item.generation === generation)), [category, generation, sorted]);
   const visibleItems = compact ? filtered.slice(0, 3) : filtered;
 
   if (loading) return <CollectionLoading text="활동을 불러오는 중입니다." />;
@@ -74,9 +78,12 @@ export function ActivityCollection({ compact = false }: { compact?: boolean }) {
   return (
     <div>
       {!compact && (
-        <div className="filter-row" role="group" aria-label="활동 카테고리 필터">
-          {categories.map((item) => <button key={item} className={category === item ? "active" : ""} aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>)}
-        </div>
+        <>
+          <GenerationSelect label="활동 기수" value={generation} options={generations} onChange={setGeneration} />
+          <div className="filter-row" role="group" aria-label="활동 카테고리 필터">
+            {categories.map((item) => <button key={item} className={category === item ? "active" : ""} aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>)}
+          </div>
+        </>
       )}
       {visibleItems.length ? (
         <div className="activity-grid">
@@ -90,7 +97,7 @@ export function ActivityCollection({ compact = false }: { compact?: boolean }) {
                   <Heading>{activity.title}</Heading>
                   <p>{activity.summary}</p>
                   <div className="card-footer">
-                    <span>{activity.startDate || activity.generation}</span>
+                    <span>{activity.startDate || generations.find(([id]) => id === activity.generation)?.[1] || activity.generation}</span>
                     <Link href={`/activities/detail/?slug=${encodeURIComponent(activity.slug)}`} aria-label={`${activity.title} 자세히 보기`}>자세히 보기 <span aria-hidden="true">→</span></Link>
                   </div>
                 </div>
@@ -99,7 +106,7 @@ export function ActivityCollection({ compact = false }: { compact?: boolean }) {
           })}
         </div>
       ) : (
-        <EmptyState headingLevel={compact ? "h3" : "h2"} title={category === "All" ? "아직 등록된 활동이 없습니다" : `${category} 활동이 없습니다`} text={category === "All" ? "새 활동 기록이 공개되면 이곳에 표시됩니다." : "다른 카테고리를 선택해 보세요."} />
+        <EmptyState headingLevel={compact ? "h3" : "h2"} title={category === "All" && generation === "All" ? "아직 등록된 활동이 없습니다" : "조건에 맞는 활동이 없습니다"} text={category === "All" && generation === "All" ? "새 활동 기록이 공개되면 이곳에 표시됩니다." : "다른 기수나 카테고리를 선택해 보세요."} />
       )}
     </div>
   );
@@ -107,22 +114,26 @@ export function ActivityCollection({ compact = false }: { compact?: boolean }) {
 
 export function ProjectCollection({ compact = false }: { compact?: boolean }) {
   const { items, loading, error } = usePublicCollection<Project>("projects");
+  const { items: generationItems } = usePublicCollection<Generation>("generations", "published", !compact);
+  const [generation, setGeneration] = useState("All");
+  const generations = useMemo(() => contentGenerations(items, generationItems), [items, generationItems]);
   const sorted = useMemo(() => [...items].sort(compareProjects), [items]);
-  const visibleItems = compact ? sorted.slice(0, 2) : sorted;
+  const filtered = useMemo(() => sorted.filter((item) => generation === "All" || item.generation === generation), [generation, sorted]);
+  const visibleItems = compact ? filtered.slice(0, 2) : filtered;
 
   if (loading) return <CollectionLoading text="프로젝트를 불러오는 중입니다." />;
   if (error) return <CollectionError text="프로젝트를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요." />;
-  if (!visibleItems.length) return <EmptyState headingLevel={compact ? "h3" : "h2"} title="아직 공개된 프로젝트가 없습니다" text="프로젝트 기록이 공개되면 이곳에 표시됩니다." />;
-
   return (
-    <div className="project-list">
+    <div>
+      {!compact && <GenerationSelect label="프로젝트 기수" value={generation} options={generations} onChange={setGeneration} />}
+      {!visibleItems.length ? <EmptyState headingLevel={compact ? "h3" : "h2"} title={generation === "All" ? "아직 공개된 프로젝트가 없습니다" : "이 기수의 공개 프로젝트가 없습니다"} text={generation === "All" ? "프로젝트 기록이 공개되면 이곳에 표시됩니다." : "다른 기수를 선택해 보세요."} /> : <div className="project-list">
       {visibleItems.map((project, index) => {
         const Heading = compact ? "h3" : "h2";
         return (
           <article className="project-card" key={project.id}>
             <div className="project-visual"><Media label={`${project.title} 프로젝트`} shortLabel={String(index + 1).padStart(2, "0")} /></div>
             <div className="project-copy">
-              <p className="eyebrow">Project · {project.generation}</p>
+              <p className="eyebrow">Project · {generations.find(([id]) => id === project.generation)?.[1] || project.generation}</p>
               <Heading>{project.title}</Heading>
               <p>{project.summary}</p>
               {Boolean(project.techStack?.length) && <ul className="tag-list" aria-label="사용 기술">{project.techStack?.map((tech) => <li key={tech}>{tech}</li>)}</ul>}
@@ -131,8 +142,20 @@ export function ProjectCollection({ compact = false }: { compact?: boolean }) {
           </article>
         );
       })}
+      </div>}
     </div>
   );
+}
+
+function GenerationSelect({ label, value, options, onChange }: { label: string; value: string; options: [string, string][]; onChange: (value: string) => void }) {
+  if (!options.length) return null;
+  return <label className="generation-filter"><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}><option value="All">전체</option>{options.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>;
+}
+
+function contentGenerations(items: Array<{ generation?: string }>, generations: Generation[]): [string, string][] {
+  const labels = new Map(generations.filter((item) => item.id !== "current").map((item) => [item.id, item.label || item.id]));
+  for (const item of items) if (item.generation && !labels.has(item.generation)) labels.set(item.generation, item.generation);
+  return [...labels].sort(([a], [b]) => a.localeCompare(b, "ko"));
 }
 
 export function PeopleCollection() {

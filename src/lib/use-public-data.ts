@@ -7,13 +7,14 @@ import { db } from "@/lib/firebase";
 export function usePublicCollection<T>(
   collectionName: string,
   visibilityField: "published" | "visible" = "published",
+  enabled = true,
 ) {
   const [items, setItems] = useState<T[]>([]);
-  const [loading, setLoading] = useState(Boolean(db));
+  const [loading, setLoading] = useState(Boolean(db) && enabled);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (!db) return;
+    if (!db || !enabled) return;
     let active = true;
 
     getDocs(query(collection(db, collectionName), where(visibilityField, "==", true)))
@@ -25,7 +26,7 @@ export function usePublicCollection<T>(
       .finally(() => active && setLoading(false));
 
     return () => { active = false; };
-  }, [collectionName, visibilityField]);
+  }, [collectionName, visibilityField, enabled]);
 
   return { items, loading, error };
 }

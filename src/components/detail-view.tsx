@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { usePublicDocument } from "@/lib/use-public-data";
-import type { Activity, Project } from "@/types/content";
+import type { Activity, Generation, Project } from "@/types/content";
 
 export function ActivityDetail() {
   const slug = useSearchParams().get("slug");
@@ -24,7 +24,7 @@ export function ActivityDetail() {
         <p>{activity.summary}</p>
         <dl className="detail-meta">
           <div><dt>기간</dt><dd>{activity.startDate || "추후 안내"}{activity.endDate && ` — ${activity.endDate}`}</dd></div>
-          <div><dt>기수</dt><dd>{activity.generation || "미정"}</dd></div>
+          <div><dt>기수</dt><dd><GenerationName id={activity.generation} /></dd></div>
           <div><dt>담당</dt><dd>{activity.host || "추후 안내"}</dd></div>
           {activity.participants && <div><dt>참여 인원</dt><dd>{activity.participants}</dd></div>}
         </dl>
@@ -54,7 +54,7 @@ export function ProjectDetail() {
     <article className="detail-page container">
       <Link className="back-link" href="/projects">← 프로젝트 목록</Link>
       <header className="detail-header">
-        <p className="eyebrow">Project · {project.generation}</p>
+        <p className="eyebrow">Project · <GenerationName id={project.generation} /></p>
         <h1>{project.title}</h1>
         <p>{project.summary}</p>
         {Boolean(project.techStack?.length) && <ul className="tag-list">{project.techStack?.map((item) => <li key={item}>{item}</li>)}</ul>}
@@ -69,6 +69,11 @@ export function ProjectDetail() {
       </div>
     </article>
   );
+}
+
+function GenerationName({ id }: { id?: string }) {
+  const { item } = usePublicDocument<Generation>("generations", id || null);
+  return item?.label || id || "미정";
 }
 
 function LinkList({ links }: { links: string[] }) {

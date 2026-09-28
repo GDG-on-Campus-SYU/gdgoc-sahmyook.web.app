@@ -267,6 +267,7 @@ function EditorForm({ config, document, userId, onCancel, onSaved }: { config: A
   const { generation, error: generationError, loading: generationLoading } = useCurrentGeneration();
   const isCurrentRecruitment = config.name === "recruitment" && !document;
   const isSlugDocument = !document && (config.name === "activities" || config.name === "projects");
+  const hasGenerationSelect = config.name === "activities" || config.name === "projects";
   const needsDocumentId = !document && config.name === "generations";
   const generationUnavailable = isCurrentRecruitment && (generationLoading || generationError);
   const formRef = useRef<HTMLFormElement>(null);
@@ -285,8 +286,10 @@ function EditorForm({ config, document, userId, onCancel, onSaved }: { config: A
     const options = new Map(generationOptions.map((item) => [item.id, item.label]));
     const selected = values.activityGenerations;
     if (Array.isArray(selected)) for (const id of selected) if (typeof id === "string" && !options.has(id)) options.set(id, id);
+    const legacyGeneration = values.generation;
+    if (hasGenerationSelect && typeof legacyGeneration === "string" && legacyGeneration && !options.has(legacyGeneration)) options.set(legacyGeneration, `${legacyGeneration} (기존 값)`);
     return [...options].map(([id, label]) => ({ id, label }));
-  }, [generationOptions, values.activityGenerations]);
+  }, [generationOptions, hasGenerationSelect, values.activityGenerations, values.generation]);
 
   useEffect(() => {
     formRef.current?.querySelector<HTMLElement>("input:not([readonly]), select, textarea, button")?.focus();
@@ -304,16 +307,16 @@ function EditorForm({ config, document, userId, onCancel, onSaved }: { config: A
   }, [dirty]);
 
   useEffect(() => {
-    if (!db || config.name !== "members") return;
+    if (!db || !["members", "activities", "projects"].includes(config.name)) return;
     let active = true;
     getDocs(collection(db, "generations"))
       .then((snapshot) => {
         if (!active) return;
         const options = new Map<string, string>();
         for (const item of snapshot.docs) {
+          if (item.id === "current") continue;
           const data = item.data();
-          const id = item.id === "current" && typeof data.generationId === "string" ? data.generationId : item.id;
-          if (id !== "current") options.set(id, typeof data.label === "string" && data.label.trim() ? data.label : id);
+          options.set(item.id, typeof data.label === "string" && data.label.trim() ? data.label : item.id);
         }
         setGenerationOptions([...options].map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label, "ko")));
       })
@@ -367,6 +370,10 @@ function EditorForm({ config, document, userId, onCancel, onSaved }: { config: A
     }
     if (config.name === "members" && (!Array.isArray(values.activityGenerations) || values.activityGenerations.length === 0)) {
       fail("활동 기수를 하나 이상 선택해 주세요.", "activityGenerations");
+      return;
+    }
+    if (hasGenerationSelect && !generationOptions.some((item) => item.id === values.generation) && values.generation !== document?.generation) {
+      fail("등록된 기수를 선택해 주세요. 기수 목록을 불러오지 못했다면 다시 시도해 주세요.", "generation");
       return;
     }
     const faq = values.faq as FaqItem[] | undefined;
@@ -436,7 +443,7 @@ function AdminInput({ field, value, generationOptions, readOnly = false, invalid
   return (
     <label className={`field ${field.kind === "textarea" || field.kind === "list" ? "field-wide" : ""}`} htmlFor={id}>
       <span>{field.label}{field.required && <em>필수</em>}</span>
-      {field.kind === "textarea" || field.kind === "list" ? <textarea id={id} value={String(value)} required={field.required} rows={field.kind === "textarea" ? 5 : 3} aria-invalid={invalid || undefined} aria-describedby={invalid ? "admin-form-error" : undefined} onChange={(event) => onChange(event.target.value)} /> : field.kind === "select" ? <select id={id} value={String(value)} required={field.required} aria-invalid={invalid || undefined} aria-describedby={invalid ? "admin-form-error" : undefined} onChange={(event) => onChange(event.target.value)}><option value="">선택</option>{field.options?.map((option) => <option key={option}>{option}</option>)}</select> : <input id={id} type={field.kind === "date" || field.kind === "number" || field.kind === "url" ? field.kind : "text"} value={String(value)} required={field.required} readOnly={readOnly} aria-invalid={invalid || undefined} aria-describedby={invalid ? "admin-form-error" : undefined} onChange={(event) => onChange(event.target.value)} />}
+      {field.kind === "textarea" || field.kind === "list" ? <textarea id={id} value={String(value)} required={field.required} rows={field.kind === "textarea" ? 5 : 3} aria-invalid={invalid || undefined} aria-describedby={invalid ? "admin-form-error" : undefined} onChange={(event) => onChange(event.target.value)} /> : field.kind === "select" ? <select id={id} value={String(value)} required={field.required} aria-invalid={invalid || undefined} aria-describedby={invalid ? "admin-form-error" : undefined} onChange={(event) => onChange(event.target.value)}><option value="">선택</option>{(field.name === "generation" ? generationOptions : (field.options || []).map((option) => ({ id: option, label: option }))).map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select> : <input id={id} type={field.kind === "date" || field.kind === "number" || field.kind === "url" ? field.kind : "text"} value={String(value)} required={field.required} readOnly={readOnly} aria-invalid={invalid || undefined} aria-describedby={invalid ? "admin-form-error" : undefined} onChange={(event) => onChange(event.target.value)} />}
     </label>
   );
 }
