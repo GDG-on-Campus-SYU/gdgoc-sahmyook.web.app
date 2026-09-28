@@ -13,10 +13,14 @@ export function Analytics() {
 
   useEffect(() => {
     if (!id || !/^G-[A-Z0-9]+$/.test(id) || pathname?.startsWith("/admin")) return;
-    const analyticsWindow = window as Window & { dataLayer?: unknown[][]; gtag?: (...args: unknown[]) => void };
+    const analyticsWindow = window as Window & { dataLayer?: unknown[]; gtag?: (...args: unknown[]) => void };
     if (!initialized.current) {
       analyticsWindow.dataLayer ||= [];
-      analyticsWindow.gtag ||= (...args) => { analyticsWindow.dataLayer!.push(args); };
+      analyticsWindow.gtag ||= function gtag() {
+        // Google tag expects the Arguments object, not a rest-parameter array.
+        // eslint-disable-next-line prefer-rest-params
+        analyticsWindow.dataLayer!.push(arguments);
+      };
       analyticsWindow.gtag("js", new Date());
       analyticsWindow.gtag("config", id, { send_page_view: false });
       initialized.current = true;
