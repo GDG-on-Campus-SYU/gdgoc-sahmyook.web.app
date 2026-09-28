@@ -20,4 +20,5 @@ test("blocks conflicts and visible members without consent", () => {
   const document = { fields: { name: { stringValue: "구성원" }, visible: { booleanValue: true }, updatedBy: { stringValue: "new" } } };
   const metadata = { fields: { updatedBy: { stringValue: "old" } } };
   assert.deepEqual(planDocument(document, metadata, "members").issues, ["metadata-conflict", "visible-member-missing-consent"]);
+  assert.deepEqual(planDocument({ fields: { visible: { booleanValue: true }, consentConfirmedAt: { timestampValue: "2026-09-28T00:00:00Z" }, consentConfirmedBy: { stringValue: "" } } }, null, "members").issues, ["visible-member-missing-consent"]);
 });

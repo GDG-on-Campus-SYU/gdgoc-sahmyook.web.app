@@ -20,7 +20,7 @@ export function planDocument(document, metadata, collection) {
     if (collection !== "members" && field.startsWith("consentConfirmed")) issues.push("non-member-consent");
   }
   if (collection === "members" && fields.visible?.booleanValue === true
-    && !(typeof combined.consentConfirmedAt?.timestampValue === "string" && typeof combined.consentConfirmedBy?.stringValue === "string")) {
+    && !(typeof combined.consentConfirmedAt?.timestampValue === "string" && combined.consentConfirmedBy?.stringValue?.trim())) {
     issues.push("visible-member-missing-consent");
   }
   return {
