@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useRef } from "react";
 
 export function MobileNav({ items }: { items: ReadonlyArray<readonly [string, string]> }) {
   const menu = useRef<HTMLDetailsElement>(null);
+  const pathname = usePathname();
 
   return (
     <details
@@ -23,7 +25,7 @@ export function MobileNav({ items }: { items: ReadonlyArray<readonly [string, st
       </summary>
       <nav aria-label="모바일 메뉴">
         {items.map(([label, href]) => (
-          <Link key={href} href={href} onClick={() => menu.current?.removeAttribute("open")}>
+          <Link key={href} href={href} aria-current={pathname === href || pathname.startsWith(`${href}/`) ? "page" : undefined} onClick={() => menu.current?.removeAttribute("open")}>
             {label}
           </Link>
         ))}

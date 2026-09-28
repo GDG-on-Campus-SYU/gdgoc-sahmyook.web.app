@@ -13,7 +13,7 @@ export type Activity = {
   host?: string;
   links?: string[];
   published?: boolean;
-  placeholder?: boolean;
+  order?: number;
 };
 
 export type Project = {
@@ -31,7 +31,7 @@ export type Project = {
   demo?: string;
   generation?: string;
   published?: boolean;
-  placeholder?: boolean;
+  order?: number;
 };
 
 export type Member = {
@@ -40,11 +40,20 @@ export type Member = {
   role: "Organizer" | "Team Member" | "Member";
   position?: string;
   generation?: string;
+  activityGenerations?: string[];
   description?: string;
   github?: string;
   linkedin?: string;
   website?: string;
   visible?: boolean;
+  order?: number;
+};
+
+export type Generation = {
+  id: string;
+  label: string;
+  generationId?: string;
+  published?: boolean;
   order?: number;
 };
 

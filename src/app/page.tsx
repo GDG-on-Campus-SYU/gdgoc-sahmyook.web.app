@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ActivityCollection, ProjectCollection, RecruitmentPanel } from "@/components/public-content";
 import { SectionHeading } from "@/components/site-shell";
@@ -8,6 +9,8 @@ const values = [
   ["Share", "배운 것과 경험을 아낌없이 나눕니다.", "green"],
   ["Connect", "학생과 개발자 커뮤니티를 연결합니다.", "yellow"],
 ] as const;
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default function Home() {
   return (

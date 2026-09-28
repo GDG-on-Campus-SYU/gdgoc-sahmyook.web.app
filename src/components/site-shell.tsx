@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { MobileNav } from "@/components/mobile-nav";
+import { DesktopNav } from "@/components/desktop-nav";
 
 const navigation = [
   ["About", "/about"],
@@ -12,24 +13,24 @@ const navigation = [
 
 const logos = {
   chapterHorizontal: {
-    src: "/brand/gdgoc-sahmyook-horizontal.png",
+    src: "/brand/gdgoc-sahmyook-horizontal-trimmed.png",
     className: "logo-chapter-horizontal",
-    width: 1474,
-    height: 678,
+    width: 1076,
+    height: 164,
     alt: "Google Developer Group On Campus, Sahmyook University",
   },
   gdgocHorizontal: {
-    src: "/brand/gdgoc-on-campus-horizontal.png",
+    src: "/brand/gdgoc-on-campus-horizontal-trimmed.png",
     className: "logo-gdgoc-horizontal",
-    width: 1968,
-    height: 506,
+    width: 1800,
+    height: 130,
     alt: "Google Developer Group on Campus",
   },
   chapterStacked: {
-    src: "/brand/gdgoc-sahmyook-stacked.png",
+    src: "/brand/gdgoc-sahmyook-stacked-trimmed.png",
     className: "logo-chapter-stacked",
-    width: 1304,
-    height: 766,
+    width: 802,
+    height: 398,
     alt: "Google Developer Group On Campus, Sahmyook University",
   },
 } as const;
@@ -50,16 +51,7 @@ export function SiteHeader() {
         <Link href="/" className="brand-link">
           <BrandLogo priority />
         </Link>
-        <nav className="desktop-nav" aria-label="주요 메뉴">
-          {navigation.map(([label, href]) => (
-            <Link key={href} href={href}>
-              {label}
-            </Link>
-          ))}
-          <Link href="/recruit" className="button button-small">
-            Join us <span aria-hidden="true">↗</span>
-          </Link>
-        </nav>
+        <DesktopNav items={navigation} />
         <MobileNav items={navigation} />
       </div>
     </header>
@@ -87,7 +79,6 @@ export function SiteFooter() {
           <a href="https://developers.google.com/community/gdg-on-campus" target="_blank" rel="noreferrer">
             GDG on Campus <span aria-hidden="true">↗</span>
           </a>
-          <span>공식 채널 준비 중</span>
         </div>
       </div>
       <div className="container footer-bottom">

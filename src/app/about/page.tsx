@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { BrandLogo, PageHero } from "@/components/site-shell";
 
-export const metadata: Metadata = { title: "About", description: "GDG on Campus와 GDGoC Sahmyook이 추구하는 커뮤니티를 소개합니다." };
+export const metadata: Metadata = { title: "About", description: "GDG on Campus와 GDGoC Sahmyook이 추구하는 커뮤니티를 소개합니다.", alternates: { canonical: "/about/" } };
 
 const values = [
   ["Respect", "서로 다른 배경과 경험을 존중합니다."],

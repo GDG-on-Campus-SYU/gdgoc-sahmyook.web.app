@@ -6,10 +6,9 @@ import { db } from "@/lib/firebase";
 
 export function usePublicCollection<T>(
   collectionName: string,
-  fallback: T[],
   visibilityField: "published" | "visible" = "published",
 ) {
-  const [items, setItems] = useState(fallback);
+  const [items, setItems] = useState<T[]>([]);
   const [loading, setLoading] = useState(Boolean(db));
   const [error, setError] = useState(false);
 
@@ -20,19 +19,18 @@ export function usePublicCollection<T>(
     getDocs(query(collection(db, collectionName), where(visibilityField, "==", true)))
       .then((snapshot) => {
         if (!active) return;
-        const liveItems = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as T);
-        setItems(liveItems.length ? liveItems : fallback);
+        setItems(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }) as T));
       })
       .catch(() => active && setError(true))
       .finally(() => active && setLoading(false));
 
     return () => { active = false; };
-  }, [collectionName, fallback, visibilityField]);
+  }, [collectionName, visibilityField]);
 
   return { items, loading, error };
 }
 
-export function usePublicDocument<T>(collectionName: string, id: string | null, fallback?: T) {
+export function usePublicDocument<T>(collectionName: string, id: string | null) {
   const [result, setResult] = useState<{ key: string; item?: T; error: boolean }>();
   const key = `${collectionName}/${id ?? ""}`;
 
@@ -60,7 +58,7 @@ export function usePublicDocument<T>(collectionName: string, id: string | null, 
     return () => { active = false; };
   }, [collectionName, id, key]);
 
-  if (!db) return { item: fallback, loading: false, error: false };
+  if (!db) return { item: undefined, loading: false, error: false };
   if (!id) return { item: undefined, loading: false, error: false };
   return {
     item: result?.key === key ? result.item : undefined,

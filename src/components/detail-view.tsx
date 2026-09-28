@@ -2,17 +2,14 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { starterActivities, starterProjects } from "@/lib/starter-content";
+import { useEffect } from "react";
 import { usePublicDocument } from "@/lib/use-public-data";
 import type { Activity, Project } from "@/types/content";
 
 export function ActivityDetail() {
   const slug = useSearchParams().get("slug");
-  const { item: activity, loading, error } = usePublicDocument<Activity>(
-    "activities",
-    slug,
-    starterActivities.find((item) => item.slug === slug),
-  );
+  const { item: activity, loading, error } = usePublicDocument<Activity>("activities", slug);
+  useDocumentTitle(activity?.title);
 
   if (loading) return <DetailLoading />;
   if (error) return <DetailError href="/activities" label="활동 목록" />;
@@ -33,7 +30,7 @@ export function ActivityDetail() {
         </dl>
       </header>
       <div className="detail-content">
-        <p>{activity.content || (activity.placeholder ? "공식 활동 자료를 확인한 뒤 내용을 공개합니다." : activity.summary)}</p>
+        <p>{activity.content || activity.summary}</p>
         {Boolean(activity.links?.length) && <LinkList links={activity.links!} />}
       </div>
     </article>
@@ -42,11 +39,8 @@ export function ActivityDetail() {
 
 export function ProjectDetail() {
   const slug = useSearchParams().get("slug");
-  const { item: project, loading, error } = usePublicDocument<Project>(
-    "projects",
-    slug,
-    starterProjects.find((item) => item.slug === slug),
-  );
+  const { item: project, loading, error } = usePublicDocument<Project>("projects", slug);
+  useDocumentTitle(project?.title);
 
   if (loading) return <DetailLoading />;
   if (error) return <DetailError href="/projects" label="프로젝트 목록" />;
@@ -78,7 +72,7 @@ export function ProjectDetail() {
 }
 
 function LinkList({ links }: { links: string[] }) {
-  return <ul className="detail-links">{links.map((link) => safeHref(link) && <li key={link}><a href={link} target="_blank" rel="noreferrer">관련 링크 ↗</a></li>)}</ul>;
+  return <ul className="detail-links">{links.map((link) => safeHref(link) && <li key={link}><a href={link} target="_blank" rel="noopener noreferrer">{new URL(link).hostname} 관련 링크 ↗</a></li>)}</ul>;
 }
 
 function DetailLoading() {
@@ -101,4 +95,13 @@ function safeHref(value?: string) {
   if (!value) return null;
   try { return ["http:", "https:"].includes(new URL(value).protocol) ? value : null; }
   catch { return null; }
+}
+
+function useDocumentTitle(title?: string) {
+  useEffect(() => {
+    if (!title) return;
+    const previous = document.title;
+    document.title = `${title} | GDGoC Sahmyook`;
+    return () => { document.title = previous; };
+  }, [title]);
 }

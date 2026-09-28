@@ -12,6 +12,7 @@ export const metadata: Metadata = {
     description: "Connect. Learn. Build. Together.",
     type: "website",
     locale: "ko_KR",
+    images: [{ url: "/brand/gdgoc-sahmyook-horizontal-trimmed.png", width: 1076, height: 164, alt: "GDGoC Sahmyook" }],
   },
 };
 

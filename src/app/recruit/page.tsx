@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { RecruitmentDetails, RecruitmentPanel, RecruitmentRoles } from "@/components/public-content";
 
-export const metadata: Metadata = { title: "Recruit", description: "GDGoC Sahmyook 모집 일정, 역할과 지원 방법을 확인하세요." };
+export const metadata: Metadata = { title: "Recruit", description: "GDGoC Sahmyook 모집 일정, 역할과 지원 방법을 확인하세요.", alternates: { canonical: "/recruit/" } };
 
 const qualities = ["함께 활동하려는 사람", "다른 사람의 생각을 존중하는 사람", "배우고 공유하려는 사람", "맡은 활동에 책임을 다하는 사람"];
 

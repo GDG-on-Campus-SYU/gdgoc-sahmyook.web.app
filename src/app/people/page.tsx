@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PeopleCollection, PeopleHero } from "@/components/public-content";
 
-export const metadata: Metadata = { title: "People", description: "GDGoC Sahmyook을 함께 만드는 구성원을 소개합니다." };
+export const metadata: Metadata = { title: "People", description: "GDGoC Sahmyook을 함께 만드는 구성원을 소개합니다.", alternates: { canonical: "/people/" } };
 
 export default function PeoplePage() {
   return (
