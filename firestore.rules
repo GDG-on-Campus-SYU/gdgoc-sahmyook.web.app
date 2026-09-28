@@ -10,10 +10,7 @@ service cloud.firestore {
     function hasAuditFields(data) {
       return (!('createdAt' in data) || data.createdAt is timestamp)
         && (!('updatedAt' in data) || data.updatedAt is timestamp)
-        && (!('createdBy' in data) || data.createdBy is string)
-        && (!('updatedBy' in data) || data.updatedBy is string)
-        && (!('archivedAt' in data) || data.archivedAt is timestamp)
-        && (!('archivedBy' in data) || data.archivedBy is string);
+        && (!('archivedAt' in data) || data.archivedAt is timestamp);
     }
 
     function hasValidDates(data) {
@@ -27,7 +24,7 @@ service cloud.firestore {
       return data.keys().hasOnly([
           'title', 'slug', 'summary', 'content', 'category', 'startDate', 'endDate',
           'status', 'generation', 'participants', 'host', 'links', 'published',
-          'order', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy', 'archivedAt', 'archivedBy'
+          'order', 'createdAt', 'updatedAt', 'archivedAt'
         ])
         && data.title is string && data.slug is string && data.summary is string
         && data.category in ['Study', 'Session', 'Project', 'Networking', 'Hackathon', 'Collaboration']
@@ -46,7 +43,7 @@ service cloud.firestore {
       return data.keys().hasOnly([
           'title', 'slug', 'summary', 'description', 'problem', 'solution', 'result',
           'members', 'techStack', 'github', 'demo', 'generation', 'published', 'order',
-          'createdAt', 'updatedAt', 'createdBy', 'updatedBy', 'archivedAt', 'archivedBy'
+          'createdAt', 'updatedAt', 'archivedAt'
         ])
         && data.title is string && data.slug is string && data.summary is string
         && data.published is bool
@@ -63,12 +60,11 @@ service cloud.firestore {
         && hasAuditFields(data);
     }
 
-    function isValidMember(data) {
+    function isValidMember(data, id) {
       return data.keys().hasOnly([
           'name', 'role', 'position', 'generation', 'activityGenerations', 'generationHistory', 'description',
-          'github', 'linkedin', 'website', 'profileImage', 'visible', 'order', 'consentConfirmedAt',
-          'consentConfirmedBy', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy',
-          'archivedAt', 'archivedBy'
+          'github', 'linkedin', 'website', 'profileImage', 'visible', 'order',
+          'createdAt', 'updatedAt', 'archivedAt'
         ])
         && data.name is string
         && data.role in ['Organizer', 'Team Member', 'Member']
@@ -85,17 +81,18 @@ service cloud.firestore {
         && (!('website' in data) || (data.website is string && (data.website == '' || data.website.matches('https?://.+'))))
         && (!('profileImage' in data) || (data.profileImage is string && (data.profileImage == '' || data.profileImage.matches('https?://.+'))))
         && (!('order' in data) || data.order is number)
-        && (!('consentConfirmedAt' in data) || data.consentConfirmedAt is timestamp)
-        && (!('consentConfirmedBy' in data) || data.consentConfirmedBy is string)
-        && (!data.visible || ('consentConfirmedAt' in data && 'consentConfirmedBy' in data))
+        && (!data.visible || (
+          existsAfter(/databases/$(database)/documents/internalMetadata/members/documents/$(id))
+          && getAfter(/databases/$(database)/documents/internalMetadata/members/documents/$(id)).data.consentConfirmedAt is timestamp
+          && getAfter(/databases/$(database)/documents/internalMetadata/members/documents/$(id)).data.consentConfirmedBy is string
+        ))
         && hasAuditFields(data);
     }
 
     function isValidRecruitment(data) {
       return data.keys().hasOnly([
           'title', 'description', 'startDate', 'endDate', 'applyUrl', 'status', 'process',
-          'roles', 'faq', 'published', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy',
-          'archivedAt', 'archivedBy'
+          'roles', 'faq', 'published', 'createdAt', 'updatedAt', 'archivedAt'
         ])
         && data.title is string && data.description is string
         && data.status in ['upcoming', 'open', 'closed']
@@ -109,7 +106,7 @@ service cloud.firestore {
     }
 
     function isValidGeneration(data) {
-      return data.keys().hasOnly(['label', 'published', 'order', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy', 'archivedAt', 'archivedBy'])
+      return data.keys().hasOnly(['label', 'published', 'order', 'createdAt', 'updatedAt', 'archivedAt'])
         && data.label is string && data.published is bool
         && (!('order' in data) || data.order is number)
         && hasAuditFields(data);
@@ -122,7 +119,7 @@ service cloud.firestore {
 
     match /members/{id} {
       allow read: if resource.data.visible == true || isEditor();
-      allow create, update: if isEditor() && isValidMember(request.resource.data);
+      allow create, update: if isEditor() && isValidMember(request.resource.data, id);
       allow delete: if false;
     }
 
@@ -147,18 +144,31 @@ service cloud.firestore {
     match /generations/current {
       allow read: if true;
       allow create, update: if isEditor()
-        && request.resource.data.keys().hasOnly(['generationId', 'label', 'published', 'updatedAt', 'updatedBy'])
+        && request.resource.data.keys().hasOnly(['generationId', 'label', 'published', 'updatedAt'])
         && request.resource.data.generationId is string
         && request.resource.data.label is string
         && (!('published' in request.resource.data) || request.resource.data.published is bool)
-        && request.resource.data.updatedAt is timestamp
-        && request.resource.data.updatedBy is string;
+        && request.resource.data.updatedAt is timestamp;
       allow delete: if false;
     }
 
     match /generations/{id} {
       allow read: if resource.data.published == true || isEditor();
       allow create, update: if isEditor() && isValidGeneration(request.resource.data);
+      allow delete: if false;
+    }
+
+    match /internalMetadata/{collectionId}/documents/{id} {
+      allow read: if isEditor() && collectionId in ['members', 'activities', 'projects', 'recruitment', 'generations'];
+      allow create, update: if isEditor()
+        && collectionId in ['members', 'activities', 'projects', 'recruitment', 'generations']
+        && request.resource.data.keys().hasOnly(['createdBy', 'updatedBy', 'archivedBy', 'consentConfirmedAt', 'consentConfirmedBy'])
+        && (!('createdBy' in request.resource.data) || request.resource.data.createdBy is string)
+        && (!('updatedBy' in request.resource.data) || request.resource.data.updatedBy is string)
+        && (!('archivedBy' in request.resource.data) || request.resource.data.archivedBy is string)
+        && (collectionId == 'members' || !('consentConfirmedAt' in request.resource.data || 'consentConfirmedBy' in request.resource.data))
+        && (!('consentConfirmedAt' in request.resource.data) || request.resource.data.consentConfirmedAt is timestamp)
+        && (!('consentConfirmedBy' in request.resource.data) || request.resource.data.consentConfirmedBy is string);
       allow delete: if false;
     }
   }
