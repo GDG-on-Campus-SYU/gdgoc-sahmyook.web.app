@@ -468,7 +468,8 @@ function initialValue(field: AdminField, value: unknown): FormValue {
       ? [{ question: String(Reflect.get(item, "question") || ""), answer: String(Reflect.get(item, "answer") || "") }]
       : []);
   }
-  if (field.kind === "generation-list" || field.kind === "multi-select") return Array.isArray(value) ? value.map(String) : [];
+  if (field.kind === "generation-list") return Array.isArray(value) ? value.map(String) : [];
+  if (field.kind === "multi-select") return Array.isArray(value) ? value.map(String).filter((item) => field.options?.includes(item)) : [];
   if (typeof value === "boolean") return value;
   if (Array.isArray(value)) return value.join("\n");
   return value == null ? "" : String(value);
