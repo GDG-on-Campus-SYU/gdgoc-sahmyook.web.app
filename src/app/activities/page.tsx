@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ActivityCollection } from "@/components/public-content";
 import { PageHero } from "@/components/site-shell";
 
-export const metadata: Metadata = { title: "Activities", description: "GDGoC Sahmyook의 스터디, 세션, 네트워킹과 협업 활동을 확인하세요.", alternates: { canonical: "/activities/" } };
+export const metadata: Metadata = { title: "Activities", description: "GDGOC Sahmyook의 스터디, 세션, 네트워킹과 협업 활동을 확인하세요.", alternates: { canonical: "/activities/" } };
 
 const chapterEvents = [
   { date: "2026.08.10", title: "새 운영진 커피챗 및 네트워킹 세션", href: "https://gdg.community.dev/gdg-on-campus-sahmyook-university-seoul-south-korea/" },

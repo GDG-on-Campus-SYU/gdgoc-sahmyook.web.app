@@ -103,7 +103,7 @@ function useDocumentTitle(title?: string) {
   useEffect(() => {
     if (!title) return;
     const previous = document.title;
-    document.title = `${title} | GDGoC Sahmyook`;
+    document.title = `${title} | GDGOC Sahmyook`;
     return () => { document.title = previous; };
   }, [title]);
 }

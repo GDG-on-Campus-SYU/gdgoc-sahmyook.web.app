@@ -87,5 +87,5 @@ jobs:
         run: |
           test -n "$SITE_URL"
           for path in / /people/ /recruit/; do
-            curl --fail --silent --show-error --retry 5 --retry-all-errors "${SITE_URL%/}${path}" | grep -q "GDGoC Sahmyook"
+            curl --fail --silent --show-error --retry 5 --retry-all-errors "${SITE_URL%/}${path}" | grep -q "GDGOC Sahmyook"
           done

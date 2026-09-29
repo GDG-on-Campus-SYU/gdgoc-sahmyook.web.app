@@ -120,7 +120,7 @@ function Editor({ user, role }: { user: User; role: string }) {
   return (
     <div className="admin-layout">
       <aside className="admin-sidebar">
-        <div><span>GDGoC Sahmyook</span><strong>Admin</strong></div>
+        <div><span>GDGOC Sahmyook</span><strong>Admin</strong></div>
         <nav aria-label="관리 메뉴">
           {adminCollections.map((item) => (
             <button key={item.name} className={active.name === item.name ? "active" : ""} aria-current={active.name === item.name ? "page" : undefined} onClick={() => item.name !== active.name && leave(() => setActive(item))}>{item.label}</button>

@@ -12,24 +12,8 @@ const navigation = [
   ["Recruit", "/recruit"],
 ] as const;
 
-const logoClasses = {
-  chapterHorizontal: "logo-chapter-horizontal",
-  gdgocHorizontal: "logo-gdgoc-horizontal",
-  chapterStacked: "logo-chapter-stacked",
-} as const;
-
-export function BrandLogo({ variant = "chapterHorizontal", priority = false }: { variant?: keyof typeof logoClasses; priority?: boolean }) {
-  return (
-    <span className={`brand-logo ${logoClasses[variant]}`}>
-      <span className="brand-symbol" aria-hidden="true">
-        <Image src="/brand/gdgoc-symbol-transparent.png" width={1254} height={1254} alt="" priority={priority} />
-      </span>
-      <span className="brand-wordmark">
-        <strong>Google Developer Group</strong>
-        <span>On Campus{variant === "gdgocHorizontal" ? "" : " · Sahmyook University"}</span>
-      </span>
-    </span>
-  );
+export function BrandLogo({ priority = false }: { priority?: boolean }) {
+  return <Image className="brand-logo" src="/brand/gdgoc-sahmyook-horizontal-light.svg" width={1920} height={390} alt="Google Developer Group On Campus Sahmyook University" priority={priority} />;
 }
 
 export function SiteHeader() {
@@ -51,7 +35,7 @@ export function SiteFooter() {
     <footer className="site-footer">
       <div className="container footer-grid">
         <div>
-          <div className="footer-brand-panel"><BrandLogo variant="chapterStacked" /></div>
+          <div className="footer-brand-panel"><BrandLogo /></div>
           <p>삼육대학교에서 함께 배우고, 만들고, 경험을 나누는 학생 개발자 커뮤니티.</p>
         </div>
         <div className="footer-links">
@@ -75,7 +59,7 @@ export function SiteFooter() {
         </div>
       </div>
       <div className="container footer-bottom">
-        <span>© {new Date().getFullYear()} GDGoC Sahmyook</span>
+        <span>© {new Date().getFullYear()} GDGOC Sahmyook</span>
         <span>이 챕터는 독립적으로 운영되며, 게시된 견해는 Google의 견해를 대변하지 않습니다.</span>
       </div>
     </footer>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { BrandLogo, PageHero } from "@/components/site-shell";
 
-export const metadata: Metadata = { title: "About", description: "GDG on Campus와 GDGoC Sahmyook이 추구하는 커뮤니티를 소개합니다.", alternates: { canonical: "/about/" } };
+export const metadata: Metadata = { title: "About", description: "GDG on Campus와 GDGOC Sahmyook이 추구하는 커뮤니티를 소개합니다.", alternates: { canonical: "/about/" } };
 
 const values = [
   ["Respect", "서로 다른 배경과 경험을 존중합니다."],
@@ -13,15 +13,15 @@ const values = [
 export default function AboutPage() {
   return (
     <>
-      <PageHero eyebrow="About us" title="기술로 만나고, 경험으로 이어지는 커뮤니티" description="GDGoC Sahmyook은 삼육대학교 학생들이 함께 배우고 만들며 개발자 생태계와 연결되는 학생 커뮤니티입니다." />
+      <PageHero eyebrow="About us" title="기술로 만나고, 경험으로 이어지는 커뮤니티" description="GDGOC Sahmyook은 삼육대학교 학생들이 함께 배우고 만들며 개발자 생태계와 연결되는 학생 커뮤니티입니다." />
       <section className="section container editorial-grid">
         <p className="eyebrow">What is GDG on Campus?</p>
         <div>
           <h2>학교 안의 배움을<br />더 넓은 세상과 연결합니다.</h2>
           <p>Google Developer Groups on Campus는 학생들이 직접 기술을 배우고 실습하며 개발자 커뮤니티와 연결되는 프로그램입니다.</p>
-          <p>GDGoC Sahmyook은 삼육대학교의 독립적인 챕터입니다. 이곳에서는 챕터가 공개한 활동, 프로젝트와 사람들의 기록을 소개합니다.</p>
+          <p>GDGOC Sahmyook은 삼육대학교의 독립적인 챕터입니다. 이곳에서는 챕터가 공개한 활동, 프로젝트와 사람들의 기록을 소개합니다.</p>
           <p><a className="text-link" href="https://gdg.community.dev/gdg-on-campus-sahmyook-university-seoul-south-korea/" target="_blank" rel="noopener noreferrer">공식 챕터에서 행사 확인하기 ↗</a></p>
-          <div className="program-logo"><BrandLogo variant="gdgocHorizontal" /></div>
+          <div className="program-logo"><BrandLogo /></div>
         </div>
       </section>
       <section className="section surface-section">
@@ -34,7 +34,7 @@ export default function AboutPage() {
       </section>
       <section className="section container identity-statement">
         <p className="eyebrow">Our identity</p>
-        <blockquote>“실제 구성원, 실제 활동, 실제 결과물이<br />GDGoC Sahmyook의 정체성이 됩니다.”</blockquote>
+        <blockquote>“실제 구성원, 실제 활동, 실제 결과물이<br />GDGOC Sahmyook의 정체성이 됩니다.”</blockquote>
         <p>이 웹사이트는 활동이 끝나도 기록이 사라지지 않고 다음 구성원에게 이어지는 커뮤니티 아카이브를 지향합니다.</p>
       </section>
     </>
