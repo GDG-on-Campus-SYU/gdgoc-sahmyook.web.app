@@ -1,6 +1,6 @@
-# GDGoC Sahmyook
+# GDGOC Sahmyook
 
-GDGoC Sahmyook의 공식 웹사이트이자 활동 아카이브입니다. Next.js App Router를 정적 export하고 Firebase Hosting, Firestore, Authentication을 사용합니다.
+GDGOC Sahmyook의 공식 웹사이트이자 활동 아카이브입니다. Next.js App Router를 정적 export하고 Firebase Hosting, Firestore, Authentication을 사용합니다.
 
 ## 로컬 실행
 
@@ -35,6 +35,6 @@ GitHub Actions 배포에는 Firebase 서비스 계정 JSON을 `FIREBASE_SERVICE_
 
 ## 코드와 자산의 권리
 
-이 저장소는 공개되어 있어도 오픈소스 라이선스를 부여하지 않습니다. 별도 허가 없이 코드나 GDGoC Sahmyook 브랜드 자산을 재사용할 수 없습니다. Pretendard 글꼴은 해당 글꼴의 라이선스를 따릅니다.
+이 저장소는 공개되어 있어도 오픈소스 라이선스를 부여하지 않습니다. 별도 허가 없이 코드나 GDGOC Sahmyook 브랜드 자산을 재사용할 수 없습니다. 웹 UI는 Google Sans(영문·숫자)와 Noto Sans KR(한글)을 자체 호스팅하며, 각 글꼴은 [Google Sans OFL](src/app/fonts/google-sans-v70/OFL.txt) 및 [Noto Sans KR OFL](src/app/fonts/noto-sans-kr-v39/OFL.txt)을 따릅니다. 저장소에 남아 있는 Pretendard 자산은 현재 사용하지 않으며 해당 글꼴의 라이선스를 따릅니다.
 
 정적 Hosting에서 Firestore에 새로 추가한 상세 콘텐츠를 배포 없이 열 수 있도록 상세 URL은 `/activities/detail?slug=...`와 `/projects/detail?slug=...` 형식을 사용합니다.

@@ -21,7 +21,7 @@ export default function Home() {
           <h1><span>Connect.</span><span>Learn. Build.</span><span>Together.</span></h1>
           <p className="hero-lede">삼육대학교에서 기술을 배우는 것을 넘어, 함께 만들고 경험을 나누는 학생 개발자 커뮤니티입니다.</p>
           <div className="button-row">
-            <Link className="button" href="/about">Explore GDGoC <span aria-hidden="true">→</span></Link>
+            <Link className="button" href="/about">Explore GDGOC <span aria-hidden="true">→</span></Link>
             <Link className="button button-secondary" href="/recruit">Join us <span aria-hidden="true">↗</span></Link>
           </div>
         </div>
@@ -42,7 +42,7 @@ export default function Home() {
 
       <section className="section about-intro">
         <div className="container intro-grid">
-          <p className="eyebrow">About GDGoC</p>
+          <p className="eyebrow">About GDGOC</p>
           <div>
             <h2>혼자 배우는 기술을<br />함께 성장하는 경험으로.</h2>
             <p>GDG on Campus는 대학생이 기술을 탐구하고, 동료와 결과물을 만들며, 더 넓은 개발자 커뮤니티와 연결되는 프로그램입니다.</p>
@@ -52,7 +52,7 @@ export default function Home() {
       </section>
 
       <section className="section container">
-        <SectionHeading eyebrow="What we do" title="배움이 결과물이 되는 네 가지 방식" description="GDGoC Sahmyook의 활동은 배우고, 만들고, 나누고, 연결되는 하나의 흐름입니다." />
+        <SectionHeading eyebrow="What we do" title="배움이 결과물이 되는 네 가지 방식" description="GDGOC Sahmyook의 활동은 배우고, 만들고, 나누고, 연결되는 하나의 흐름입니다." />
         <div className="value-bento">
           {values.map(([title, text, color]) => (
             <article className={`value-card value-${color}`} key={title}>

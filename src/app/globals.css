@@ -11,10 +11,10 @@
   --red: #d93025;
   --yellow: #f9ab00;
   --green: #188038;
-  --brand-blue: #4082f5;
-  --brand-red: #ed452f;
-  --brand-yellow: #fdbc01;
-  --brand-green: #109955;
+  --brand-blue: #4285f4;
+  --brand-red: #ea4335;
+  --brand-yellow: #f9ab00;
+  --brand-green: #34a853;
   --max-width: 1240px;
   --radius-sm: 8px;
   --radius-md: 16px;
@@ -27,7 +27,7 @@ body {
   margin: 0;
   color: var(--ink);
   background: var(--canvas);
-  font-family: "Pretendard Variable", "Noto Sans KR", Arial, sans-serif;
+  font-family: "Google Sans", "Noto Sans KR", Arial, sans-serif;
   font-size: 16px;
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
@@ -37,7 +37,7 @@ button, input, select, textarea { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 img { display: block; max-width: 100%; }
 h1, h2, h3, p { margin-top: 0; }
-h1, h2, h3 { font-family: "Pretendard Variable", "Noto Sans KR", Arial, sans-serif; line-height: 1.18; letter-spacing: -0.035em; word-break: keep-all; }
+h1, h2, h3 { font-family: "Google Sans", "Noto Sans KR", Arial, sans-serif; line-height: 1.18; letter-spacing: -0.035em; word-break: keep-all; }
 h1 { font-size: clamp(2.75rem, 4.5vw, 3.5rem); }
 h2 { font-size: clamp(2rem, 3.2vw, 2.5rem); }
 h3 { font-size: clamp(1.5rem, 2.1vw, 1.75rem); }
@@ -60,21 +60,8 @@ h3 { font-size: clamp(1.5rem, 2.1vw, 1.75rem); }
 
 .site-header { position: sticky; z-index: 100; top: 0; height: 72px; border-bottom: 1px solid rgba(218, 220, 224, .8); background: rgba(255, 255, 255, .92); backdrop-filter: blur(14px); }
 .nav-shell { height: 100%; display: flex; align-items: center; justify-content: space-between; }
-.brand-link { display: block; border-radius: 6px; }
-.brand-logo { display: inline-flex; align-items: center; gap: 12px; max-width: 100%; }
-.brand-symbol { --symbol-width: 48px; position: relative; display: block; flex: none; width: var(--symbol-width); height: calc(var(--symbol-width) * .51); overflow: hidden; }
-.brand-symbol img { position: absolute; top: calc(var(--symbol-width) * -.36); left: calc(var(--symbol-width) * -.111); width: calc(var(--symbol-width) * 1.225); max-width: none; height: auto; }
-.brand-wordmark { display: grid; gap: 1px; line-height: 1.25; white-space: nowrap; }
-.brand-wordmark strong { font-size: .95rem; font-weight: 750; letter-spacing: -.035em; }
-.brand-wordmark > span { color: var(--muted); font-size: .7rem; font-weight: 650; }
-.brand-logo.logo-gdgoc-horizontal { gap: 28px; }
-.logo-gdgoc-horizontal .brand-symbol { --symbol-width: 120px; }
-.logo-gdgoc-horizontal .brand-wordmark strong { font-size: clamp(1.75rem, 4vw, 3rem); }
-.logo-gdgoc-horizontal .brand-wordmark > span { color: var(--blue-dark); font-size: clamp(1.25rem, 3vw, 2rem); }
-.brand-logo.logo-chapter-stacked { align-items: flex-start; flex-direction: column; gap: 12px; }
-.logo-chapter-stacked .brand-symbol { --symbol-width: 96px; }
-.logo-chapter-stacked .brand-wordmark strong { font-size: 1.15rem; }
-.logo-chapter-stacked .brand-wordmark > span { color: #c9d3df; font-size: .8rem; }
+.brand-link { display: block; flex: 0 1 320px; min-width: 0; border-radius: 6px; }
+.brand-logo { display: block; width: 100%; height: auto; }
 .desktop-nav { display: flex; align-items: center; gap: 30px; font-size: .9rem; font-weight: 620; }
 .desktop-nav > a:not(.button) { position: relative; color: var(--body); }
 .desktop-nav > a:not(.button)::after { position: absolute; right: 0; bottom: -6px; left: 0; height: 2px; transform: scaleX(0); transform-origin: left; background: var(--blue); content: ""; transition: transform .2s ease; }
@@ -99,7 +86,7 @@ h3 { font-size: clamp(1.5rem, 2.1vw, 1.75rem); }
 .hero h1 { margin: 0 0 28px; font-size: clamp(3.1rem, 5.5vw, 4.5rem); line-height: 1.07; letter-spacing: -.055em; }
 .hero h1 span { display: block; }
 .hero h1 span:nth-child(2) { color: var(--blue); }
-.hero-lede { max-width: 590px; margin-bottom: 36px; color: var(--body); font-size: clamp(1.08rem, 1.6vw, 1.3rem); line-height: 1.75; }
+.hero-lede { max-width: 590px; margin-bottom: 36px; color: var(--body); font-size: clamp(1.08rem, 1.6vw, 1.3rem); line-height: 1.75; word-break: keep-all; overflow-wrap: break-word; }
 .hero-map { position: relative; min-height: 500px; isolation: isolate; }
 .hero-map::before { position: absolute; inset: 4% 0; z-index: -2; border-radius: 50%; background: radial-gradient(circle, #f3f7fd 0, rgba(247,248,250,0) 67%); content: ""; }
 .hero-map svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
@@ -335,7 +322,7 @@ body:has(.admin-gate) > .site-footer { display: none; }
 .site-footer { padding: 72px 0 24px; background: #17191c; color: white; }
 .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 64px; padding-bottom: 64px; }
 .footer-grid > div:first-child > p { max-width: 420px; margin: 24px 0 0; color: #aeb4bb; }
-.footer-brand-panel { width: fit-content; }
+.footer-brand-panel { width: min(100%, 360px); padding: 8px 12px; border-radius: var(--radius-sm); background: white; }
 .footer-links { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; color: #aeb4bb; font-size: .9rem; }
 .footer-links strong { margin-bottom: 8px; color: white; }
 .footer-links a:hover { color: white; }
@@ -380,14 +367,6 @@ body:has(.admin-gate) > .site-footer { display: none; }
   .container { width: min(calc(100% - 32px), var(--max-width)); }
   .section { padding-block: 80px; }
   .site-header { height: 64px; }
-  .logo-chapter-horizontal { gap: 8px; }
-  .logo-chapter-horizontal .brand-symbol { --symbol-width: 40px; }
-  .logo-chapter-horizontal .brand-wordmark strong { font-size: .78rem; }
-  .logo-chapter-horizontal .brand-wordmark > span { font-size: .62rem; }
-  .logo-gdgoc-horizontal .brand-symbol { --symbol-width: 72px; }
-  .brand-logo.logo-gdgoc-horizontal { gap: 12px; }
-  .logo-gdgoc-horizontal .brand-wordmark strong { font-size: 1.3rem; white-space: normal; }
-  .logo-gdgoc-horizontal .brand-wordmark > span { font-size: 1.1rem; }
   .hero { min-height: calc(100svh - 64px); padding-block: 56px; }
   .hero-map { min-height: 340px; margin-inline: -10px; }
   .map-label { font-size: .65rem; }
