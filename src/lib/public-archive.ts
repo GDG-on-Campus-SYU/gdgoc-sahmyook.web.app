@@ -1,5 +1,14 @@
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, where, type Firestore, type QuerySnapshot } from "firebase/firestore";
-import type { Activity, Project } from "@/types/content";
+import type { Activity, Generation, Project } from "@/types/content";
+
+export function generationOptions(generations: Generation[], referenced: Array<string | undefined>): [string, string][] {
+  const catalog = new Map(generations.filter((item) => item.id !== "current").map((item) => [item.id, item]));
+  const labels = new Map([...catalog].map(([id, item]) => [id, item.label || id]));
+  const pointer = generations.find((item) => item.id === "current");
+  if (pointer?.generationId && !labels.has(pointer.generationId)) labels.set(pointer.generationId, pointer.label || pointer.generationId);
+  for (const id of referenced) if (id && !labels.has(id)) labels.set(id, id);
+  return [...labels].sort(([a], [b]) => (catalog.get(a)?.order ?? 999) - (catalog.get(b)?.order ?? 999) || a.localeCompare(b, "ko"));
+}
 
 export function compareActivities(a: Activity, b: Activity) {
   return (a.order ?? 999) - (b.order ?? 999) || (b.startDate || "").localeCompare(a.startDate || "") || a.title.localeCompare(b.title, "ko") || a.id.localeCompare(b.id);
@@ -44,7 +53,15 @@ export async function readPublicCollection<T>(db: Firestore, name: string, visib
       if ((error as { code?: string }).code !== "failed-precondition") throw error;
     }
   }
-  return publicRows<T>(await getDocs(visible));
+  const snapshot = await getDocs(visible);
+  const rows = publicRows<T>(snapshot);
+  if (name === "generations" && !rows.cached && !snapshot.docs.some((entry) => entry.id === "current")) {
+    // Older public pointers may have no published field and are omitted by the catalog query.
+    const pointer = await getDoc(doc(db, name, "current")).catch(() => undefined);
+    const data = pointer?.data();
+    if (data?.generationId && data.published === undefined) rows.items.push({ ...data, id: "current" } as T);
+  }
+  return rows;
 }
 
 export function archiveHref(name: "activities" | "projects", item: { id: string; slug: string }) {
@@ -60,6 +77,10 @@ export async function readPublicDocument<T>(db: Firestore, name: string, id: str
     if (data?.published === true && (!lookupSlug || data.slug === id)) return { ...data, id: snapshot.id } as T;
   } catch (error) {
     if ((error as { code?: string }).code !== "permission-denied") throw error;
+  }
+  if (name === "generations" && id !== "current") {
+    const pointer = (await getDoc(doc(db, name, "current"))).data();
+    if (pointer?.generationId === id && pointer.published !== false) return { id, label: pointer.label || id } as T;
   }
   if (!lookupSlug) return undefined;
   const matches = await getDocs(query(collection(db, name), where("published", "==", true), where("slug", "==", id), limit(1)));

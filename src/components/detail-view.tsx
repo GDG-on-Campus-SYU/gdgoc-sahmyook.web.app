@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { usePublicDocument } from "@/lib/use-public-data";
-import type { Activity, Generation, Project } from "@/types/content";
+import { GenerationName } from "@/components/generation-name";
+import type { Activity, Project } from "@/types/content";
 import { trackAnalyticsEvent } from "@/lib/analytics-consent";
 
 export function ActivityDetail() {
@@ -72,11 +73,6 @@ export function ProjectDetail() {
       </div>
     </article>
   );
-}
-
-function GenerationName({ id }: { id?: string }) {
-  const { item } = usePublicDocument<Generation>("generations", id || null);
-  return item?.label || id || "미정";
 }
 
 function LinkList({ links }: { links: string[] }) {

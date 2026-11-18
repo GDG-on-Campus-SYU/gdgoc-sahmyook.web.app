@@ -46,6 +46,17 @@ def requires_creation(existing, history, payload):
     raise RuntimeError("The activity or audit path is already occupied by different data.")
 
 
+def current_generation(db, transaction):
+    current = db.document("generations/current").get(transaction=transaction).to_dict() or {}
+    generation = current.get("generationId")
+    if not isinstance(generation, str) or not generation or generation == "current" or "/" in generation:
+        raise RuntimeError("No current generation was found.")
+    catalog = db.document("generations/" + generation).get(transaction=transaction).to_dict() or {}
+    if catalog.get("published") is not True or "archivedAt" in catalog:
+        raise RuntimeError("The current generation has no active, published catalog entry.")
+    return generation
+
+
 def publish():
     import google.auth
     from google.cloud import firestore
@@ -63,13 +74,7 @@ def publish():
 
     @firestore.transactional
     def create(transaction):
-        current = db.document("generations/current").get(transaction=transaction).to_dict() or {}
-        generation = current.get("generationId", "")
-        if not generation or generation == "current" or "/" in generation:
-            raise RuntimeError("No current generation was found.")
-        catalog = db.document("generations/" + generation).get(transaction=transaction).to_dict() or {}
-        if catalog.get("published") is not True or "archivedAt" in catalog or catalog.get("label") != current.get("label"):
-            raise RuntimeError("The current generation does not match a published catalog entry.")
+        generation = current_generation(db, transaction)
         payload = {
             "title": TITLE, "slug": SLUG, "category": "Session", "status": "예정",
             "summary": "GDGoC 서울과학기술대학교와 삼육대학교가 함께 여는 네트워킹 세션입니다.",

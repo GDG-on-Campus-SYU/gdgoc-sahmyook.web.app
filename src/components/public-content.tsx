@@ -10,7 +10,8 @@ import { effectiveRecruitmentStatus } from "@/lib/recruitment-status";
 import { trackAnalyticsEvent } from "@/lib/analytics-consent";
 import { memberRoleForGeneration } from "@/lib/member-presentation";
 import { usePublicCollection } from "@/lib/use-public-data";
-import { archiveHref, compareActivities, compareProjects } from "@/lib/public-archive";
+import { archiveHref, compareActivities, compareProjects, generationOptions } from "@/lib/public-archive";
+import { GenerationName } from "@/components/generation-name";
 import { PageHero } from "@/components/site-shell";
 import type { Activity, Generation, Member, Project, Recruitment } from "@/types/content";
 
@@ -67,7 +68,7 @@ export function ActivityCollection({ compact = false }: { compact?: boolean }) {
   const { items: generationItems } = usePublicCollection<Generation>("generations", "published", !compact);
   const [category, setCategory] = useState("All");
   const [generation, setGeneration] = useState("All");
-  const generations = useMemo(() => contentGenerations(items, generationItems), [items, generationItems]);
+  const generations = useMemo(() => generationOptions(generationItems, items.map((item) => item.generation)), [items, generationItems]);
   const sorted = useMemo(() => [...items].sort(compareActivities), [items]);
   const filtered = useMemo(() => sorted.filter((item) =>
     (category === "All" || item.category === category) && (generation === "All" || item.generation === generation)), [category, generation, sorted]);
@@ -99,7 +100,7 @@ export function ActivityCollection({ compact = false }: { compact?: boolean }) {
                   <Heading>{activity.title}</Heading>
                   <p>{activity.summary}</p>
                   <div className="card-footer">
-                    <span>{activity.startDate || generations.find(([id]) => id === activity.generation)?.[1] || activity.generation}</span>
+                    <span>{activity.startDate || (compact ? <GenerationName id={activity.generation} /> : generations.find(([id]) => id === activity.generation)?.[1])}</span>
                     <Link href={archiveHref("activities", activity)} aria-label={`${activity.title} 자세히 보기`}>자세히 보기 <span aria-hidden="true">→</span></Link>
                   </div>
                 </div>
@@ -118,7 +119,7 @@ export function ProjectCollection({ compact = false }: { compact?: boolean }) {
   const { items, cached, loading, error, retry } = usePublicCollection<Project>("projects", "published", true, compact ? 2 : 0);
   const { items: generationItems } = usePublicCollection<Generation>("generations", "published", !compact);
   const [generation, setGeneration] = useState("All");
-  const generations = useMemo(() => contentGenerations(items, generationItems), [items, generationItems]);
+  const generations = useMemo(() => generationOptions(generationItems, items.map((item) => item.generation)), [items, generationItems]);
   const sorted = useMemo(() => [...items].sort(compareProjects), [items]);
   const filtered = useMemo(() => sorted.filter((item) => generation === "All" || item.generation === generation), [generation, sorted]);
   const visibleItems = compact ? filtered.slice(0, 2) : filtered;
@@ -135,7 +136,7 @@ export function ProjectCollection({ compact = false }: { compact?: boolean }) {
         return (
           <article className="project-card" key={project.id}>
             <div className="project-copy">
-              <p className="eyebrow">Project · {generations.find(([id]) => id === project.generation)?.[1] || project.generation}</p>
+              <p className="eyebrow">Project · {compact ? <GenerationName id={project.generation} /> : generations.find(([id]) => id === project.generation)?.[1]}</p>
               <Heading>{project.title}</Heading>
               <p>{project.summary}</p>
               {Boolean(project.techStack?.length) && <ul className="tag-list" aria-label="사용 기술">{project.techStack?.map((tech) => <li key={tech}>{tech}</li>)}</ul>}
@@ -154,23 +155,11 @@ function GenerationSelect({ label, value, options, onChange, className = "" }: {
   return <label className={`generation-filter ${className}`}><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}><option value="All">전체</option>{options.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>;
 }
 
-function contentGenerations(items: Array<{ generation?: string }>, generations: Generation[]): [string, string][] {
-  const labels = new Map(generations.filter((item) => item.id !== "current").map((item) => [item.id, item.label || item.id]));
-  for (const item of items) if (item.generation && !labels.has(item.generation)) labels.set(item.generation, item.generation);
-  const order = new Map(generations.map((item) => [item.id, item.order ?? 999]));
-  return [...labels].sort(([a], [b]) => (order.get(a) ?? 999) - (order.get(b) ?? 999) || a.localeCompare(b, "ko"));
-}
-
 export function PeopleCollection() {
   const { items, cached, loading, error, retry } = usePublicCollection<Member>("members", "visible");
   const { items: generationItems } = usePublicCollection<Generation>("generations");
   const [generation, setGeneration] = useState("All");
-  const generations = useMemo(() => {
-    const labels = new Map(generationItems.map((item) => [item.id === "current" && item.generationId ? item.generationId : item.id, item.label]));
-    for (const member of items) for (const id of memberGenerations(member)) if (!labels.has(id)) labels.set(id, id);
-    const order = new Map(generationItems.map((item) => [item.id, item.order ?? 999]));
-    return [...labels].sort(([a], [b]) => (order.get(a) ?? 999) - (order.get(b) ?? 999) || a.localeCompare(b, "ko"));
-  }, [generationItems, items]);
+  const generations = useMemo(() => generationOptions(generationItems, items.flatMap(memberGenerations)), [generationItems, items]);
   const sorted = useMemo(() => [...items]
     .filter((member) => generation === "All" || memberGenerations(member).includes(generation))
     .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.name.localeCompare(b.name, "ko")), [generation, items]);

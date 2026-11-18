@@ -4,6 +4,8 @@ GDGOC Sahmyook의 공식 웹사이트이자 활동 아카이브입니다. Next.j
 
 ## 로컬 실행
 
+Firebase SDK와 규칙 테스트에는 Node.js 24.12 이상이 필요합니다. CI도 Node.js 24를 사용합니다.
+
 ```bash
 pnpm install
 Copy-Item .env.example .env.local

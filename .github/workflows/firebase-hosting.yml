@@ -18,7 +18,7 @@ jobs:
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
         with:
@@ -31,13 +31,16 @@ jobs:
       - run: pnpm lint
       - run: pnpm build
         env:
-          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ vars.NEXT_PUBLIC_FIREBASE_API_KEY }}
-          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ vars.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
-          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
-          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
-          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_APP_ID }}
-          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
-          NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
+          NEXT_PUBLIC_FIREBASE_API_KEY: local-test-key
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: demo-gdgoc-validation.firebaseapp.com
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: demo-gdgoc-validation
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: '123'
+          NEXT_PUBLIC_FIREBASE_APP_ID: local-test-app
+          NEXT_PUBLIC_GA_MEASUREMENT_ID: G-DEMO123456
+      - name: Verify sign-in, publication and recruitment recovery in Chrome
+        run: pnpm dlx firebase-tools@15.30.2 emulators:exec --only auth,firestore,hosting --project demo-gdgoc-validation "node tests/site-emulator.e2e.mjs"
+        env:
+          SITE_URL: http://127.0.0.1:5000
 
   deploy:
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
@@ -55,13 +58,9 @@ jobs:
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
-        if: github.event_name == 'push'
-        with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
       - run: pnpm build:hosting
         env:
           FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
@@ -72,6 +71,10 @@ jobs:
           NEXT_PUBLIC_FIREBASE_APP_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_APP_ID }}
           NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
           NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        if: github.event_name == 'push'
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
       - run: pnpm dlx firebase-tools@15.30.2 deploy --only firestore:rules,firestore:indexes --project "$FIREBASE_PROJECT_ID" --non-interactive
         if: github.event_name == 'push'
         env:

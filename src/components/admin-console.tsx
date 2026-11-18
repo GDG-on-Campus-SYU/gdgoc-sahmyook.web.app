@@ -147,6 +147,7 @@ function CollectionEditor({ config, userId, dirty, onDirtyChange }: { config: Ad
   const [search, setSearch] = useState("");
   const publicField = config.name === "members" ? "visible" : "published";
   const currentGeneration = config.name === "generations" ? documents.find((item) => item.id === "current") : undefined;
+  const currentCatalog = currentGeneration && documents.find((item) => item.id === currentGeneration.generationId);
   const editableDocuments = config.name === "generations" ? documents.filter((item) => item.id !== "current") : documents;
   const filteredDocuments = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase("ko");
@@ -237,7 +238,7 @@ function CollectionEditor({ config, userId, dirty, onDirtyChange }: { config: Ad
       </header>
       <p className="sr-live" aria-live="polite">{message}</p>
       {loadError && <p className="form-error" role="alert">{loadError}</p>}
-      {config.name === "generations" && <p className="admin-current-generation">현재 기수: <strong>{String(currentGeneration?.label || currentGeneration?.generationId || "미설정")}</strong></p>}
+      {config.name === "generations" && <p className="admin-current-generation">현재 기수: <strong>{String(currentCatalog?.label || currentGeneration?.label || currentGeneration?.generationId || "미설정")}</strong></p>}
       {editing !== undefined ? (
         <EditorForm key={formSession} config={config} document={editing} userId={userId} onCancel={closeEditor} onRefresh={load} onSaved={async () => { closeEditor(); setMessage("저장했습니다."); await load(); }} onDirtyChange={onDirtyChange} />
       ) : loading ? (

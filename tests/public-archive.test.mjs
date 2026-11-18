@@ -1,6 +1,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { archiveHref, completeFeaturedOrders, validDocumentId } from "../src/lib/public-archive.ts";
+import { archiveHref, completeFeaturedOrders, generationOptions, validDocumentId } from "../src/lib/public-archive.ts";
+
+test("generation filters prefer the catalog and retain a label from a legacy pointer", () => {
+  const id = "2026-2027";
+  const catalog = { id, label: "2026-2027", order: 1 };
+  const pointer = { id: "current", generationId: id, label: "2026–2027" };
+  for (const rows of [[catalog, pointer], [pointer, catalog]]) {
+    assert.deepEqual(generationOptions(rows, [id, "old", id]), [[id, catalog.label], ["old", "old"]]);
+  }
+  assert.deepEqual(generationOptions([pointer], [id]), [[id, pointer.label]]);
+});
 
 test("archive addresses preserve Korean IDs and distinguish older documents from their slugs", () => {
   for (const collection of ["activities", "projects"]) {

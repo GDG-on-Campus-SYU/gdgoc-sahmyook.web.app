@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { after, before, test } from "node:test";
 import { initializeTestEnvironment } from "@firebase/rules-unit-testing";
-import { disableNetwork, doc, enableNetwork, writeBatch } from "firebase/firestore";
-import { compareActivities, compareProjects, readPublicCollection, readPublicDocument } from "../src/lib/public-archive.ts";
+import { deleteDoc, disableNetwork, doc, enableNetwork, setDoc, writeBatch } from "firebase/firestore";
+import { compareActivities, compareProjects, generationOptions, readPublicCollection, readPublicDocument } from "../src/lib/public-archive.ts";
 
 let env;
 before(async () => {
@@ -27,6 +27,22 @@ before(async () => {
   });
 });
 after(async () => env?.cleanup());
+
+test("public filters and detail labels agree for mixed and pointer-only generations", async () => {
+  const db = env.unauthenticatedContext().firestore();
+  const id = "2026-2027";
+  await env.withSecurityRulesDisabled(async (context) => {
+    const fixture = context.firestore();
+    await setDoc(doc(fixture, "generations", id), { label: id, published: true });
+    await setDoc(doc(fixture, "generations", "current"), { generationId: id, label: "2026–2027" });
+  });
+  for (const label of [id, "2026–2027"]) {
+    const catalog = await readPublicCollection(db, "generations", "published");
+    assert.deepEqual(generationOptions(catalog.items, [id]), [[id, label]]);
+    assert.equal((await readPublicDocument(db, "generations", id, false)).label, label);
+    if (label === id) await env.withSecurityRulesDisabled((context) => deleteDoc(doc(context.firestore(), "generations", id)));
+  }
+});
 
 test("featured results match the entire sorted archive with bounded reads, including legacy fallback", async () => {
   const db = env.unauthenticatedContext().firestore();
