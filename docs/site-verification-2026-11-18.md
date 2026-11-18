@@ -1,0 +1,72 @@
+# GDGOC Sahmyook 사이트 검증과 수정 계획
+
+## 수정 후 확인 기록
+
+| 항목 | 변경과 검증 결과 |
+|---|---|
+| 보관·복원과 동시 편집 | 실제 쓰기 함수를 사용하는 에뮬레이터에서 구성원·활동의 익명 목록, 직접 읽기, 복원 후 비공개, 별도 재공개를 확인했다. 동일 ID 동시 생성 하나만 성공했고 수정 시각이 없는 기존 문서에서도 오래된 저장을 거절했다. 당시 운영 공개 문서 중 보관 표시가 남은 건은 5개 컬렉션 모두 0건이었다. |
+| 신규 폼·기수·정렬·키보드 | ReactDOM에서 새 폼의 개인정보·공개 상태 초기화, 폐기 취소 시 입력 보존, 지연 재조회 뒤 원래 행 또는 대체 버튼 포커스 복원을 확인했다. 에뮬레이터에서 순서 0과 삭제, 기수 이름 동기화·교체와 예약 ID를 검사했다. |
+| 분석 철회 | 저장 가능·쓰기 차단·전체 차단, 다른 탭의 철회와 이후 재동의를 단위 검사했다. 저장 실패 시 현재 탭에 거부를 유지하고 자동 재로드를 중지한다. |
+| 공개 목록·상세·모집 | 공개 아카이브 51건으로 활동 4건·프로젝트 3건만 읽고 기존 전체 정렬의 상위 3건·2건과 일치함을 확인했다. 동점이나 정렬 키 누락이 결과를 바꿀 수 있으면 전체 조회로 돌아간다. 한글·과거 주소·누락 문서, 비공개 문서, 처음 접속한 오프라인 상태와 재연결을 검사했다. 모집은 한 조회 결과와 재시도 버튼을 공유한다. |
+| 의존성·빌드 | 앱에 이미 있던 Next.js·React·Firebase와 전이 의존성을 갱신했다. 로컬 `pnpm audit --prod`가 권고 0건으로 종료됐다. 타입 검사·린트·정적 빌드·단위 검사 11개, 관리자 규칙 검사 13개, 공개 조회 에뮬레이터 검사 2개가 통과했다. |
+| 성능·메타데이터·배포 | Auth 초기화를 관리자 진입으로 옮겼다. 패키지 갱신을 포함한 동일 방식의 홈 JS gzip 합은 343,728→332,023바이트였다. 사이트맵·canonical 주소와 메뉴별 OG를 맞췄다. 운영 빌드는 필수 설정 누락이나 대상 프로젝트 불일치를 거절한다. 배포 워크플로가 Chrome에서 빌드 자산·공개 목록과 게시물 상세·모집·관리자 로그인 진입을 확인한다. |
+| 과육톤 게시 | 공식 상세의 최신 일정은 **2026년 11월 24일 18:30–22:00(KST)**, 장소는 서울과학기술대학교다. 수동 게시 작업은 실행 시 공식 일정을 다시 대조하고, 중복·기존 보관 문서를 확인한 뒤 활동과 내부 작성 이력을 한 번에 생성한다. [공식 행사 상세](https://gdg.community.dev/events/details/google-gdg-on-campus-seoul-national-university-of-science-and-technology-seoul-south-korea-presents-gwayugton-gdgoc-seoulgwahaggisuldaehaggyo-x-samyugdaehaggyo-yeonhab-sesyeon/) |
+
+## 최초 점검과 우선순위
+
+2026년 11월 18일(KST) 기준, 운영 사이트의 공개 탐색과 모집 마감 안내는 작동했다. 다음 운영진 편집 전에는 보관·공개 상태와 신규 작성 폼을 먼저 고치는 것이 좋다. 방문자 측에서는 분석 동의 철회가 저장소 쓰기 실패로 무시되는 문제가 가장 중요하다. 콘텐츠 담당자가 바로 처리할 일은 과육톤 안내다. 최초 점검 당시 챕터 목록에 11월 21일로 표시됐으나, 게시 전 공식 행사 상세에서 11월 24일 18:30–22:00(KST)로 정정했다.
+
+검증 대상은 로컬과 GitHub `main`이 일치하는 `dd304445`다. 이 커밋의 9월 29일 배포 워크플로 성공 기록을 확인했고, 11월 18일에는 운영 URL을 브라우저로 다시 점검했다. [검토한 소스](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/tree/dd304445d521d31f138a8738c4b0eb7df952b034) · [배포 기록](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/actions/runs/36507638984) · [운영 사이트](https://gdgoc-sahmyook.web.app/)
+
+## 실제로 확인한 범위
+
+| 대상 | 결과 |
+|---|---|
+| 빌드와 기존 테스트 | Windows, Node 24.18.0, pnpm 11.19.0에서 `pnpm typecheck`, `pnpm lint`, `pnpm build` 성공. `pnpm test:unit` 6/6, `pnpm test:rules` 9/9 통과. 규칙 검사는 로컬 Firestore 에뮬레이터에서 공개·비공개 읽기, 권한, 동의 메타데이터, 보관 등을 확인한다. |
+| 운영 페이지 | 홈, 소개, 활동, 프로젝트, 사람들, 모집, 분석 안내, 관리자 로그인, 활동·프로젝트 상세 기본 주소까지 10곳 모두 HTTP 200. 1440px 데스크톱에서 각 화면에 H1이 하나씩 있었고 순회 중 처리되지 않은 JS 예외가 없었다. 존재하지 않는 일반 경로는 404였다. |
+| 공개 콘텐츠 | 활동·프로젝트에 공개 목록 카드는 없었다. 활동 페이지에는 별도의 공식 행사 기록 4건이 있었다. 사람들에는 안내용 역할 카드 3개와 **실제 공개 프로필 1개**가 있었다. 모집은 종료 상태로 지원 링크가 없었고 FAQ 8개 중 첫 항목을 열었다. |
+| 목록에서 상세로 | 운영에서 두 상세 기본 주소의 누락 안내를 확인했다. 공개 카드가 있는 경우는 실제 목록·상세 컴포넌트에 합성 데이터를 넣어 별도 검증했다. 활동·프로젝트 모두 생성된 한글 링크로 제목·본문·기수명·복귀 링크를 렌더했고, 로딩·누락·오류 표시도 통과했다. 데이터 훅을 대체한 검사이므로 실제 게시물 클릭은 후속 확인 대상이다. |
+| 모바일과 키보드 | Chromium 390×844에서 메뉴의 Enter 열기, Escape 닫기와 포커스 복귀, 메뉴 링크 이동, 활동 카테고리·구성원 기수 선택을 확인했다. 320×640에서 위 10개 경로 모두 문서 가로 넘침이 없었다. 홈의 첫 Tab은 본문 바로가기였고 Enter로 본문 앵커에 이동했다. |
+| 분석 동의 | 새 브라우저에서 선택 전과 거부 후 관측한 GA 호스트 요청은 0건이었고 새로고침 후 거부가 유지됐다. 별도 브라우저에서는 외부 분석 요청을 가로채고 태그를 모의 처리했다. 동의 후 분석 안내→소개 이동에서 페이지당 `page_view`가 1개씩 큐에 쌓였고, 정상적으로 철회한 뒤 새로고침하면 태그와 이벤트 큐가 없었다. GA4 수집 서버 수신 여부는 이 검사 범위 밖이다. |
+| 검색·호스팅·링크 | 운영 `robots.txt`와 사이트맵은 200, 사이트맵 URL은 7개. 홈에 HSTS·nosniff·Referrer-Policy·Permissions-Policy가 있었고 CSP는 보고 전용이었다. 표본 정적 JS는 1년 immutable, 브랜드 SVG는 1일 캐시였다. 활동 목록과 푸터의 공식 챕터·행사·GitHub·Google·행사 참여 기준 주소 5곳은 최종 응답 200이었다. |
+| 성능 | 새 빌드의 홈 초기 HTML이 참조하는 현대 브라우저용 외부 JS 8개가 원본 1,161,851바이트, 파일별 gzip 합계 343,728바이트였다. 최대 청크는 gzip 193,049바이트였다. 운영 홈의 새 Chromium 세션 1회(390px, 네트워크·CPU 제한 없음)에서 LCP 388ms, CLS 약 0.001이었다. 이 측정의 gzip 수치는 로컬 산출물 기준이며 단일 방문으로 실제 이용자의 성능 분포를 판단할 수 없다. |
+| 의존성 | `pnpm audit --prod --json`이 종료 코드 1을 반환했다. 잠금 파일 기준 권고는 Critical 3, High 6, Moderate 7, Low 2로 총 18건이다. 적용 조건과 처리 순서는 아래에 정리했다. |
+
+## P1 · 먼저 처리할 일
+
+| 작업과 근거 | 수정 계획 | 완료 기준 |
+|---|---|---|
+| **보관한 구성원·콘텐츠가 다시 공개될 수 있음.** 관리자 목록은 `archivedAt`이 있으면 ‘보관됨’으로 표시한다. 같은 행의 수정 화면에서는 공개를 켤 수 있고, 기존 문서에 병합 저장하므로 보관 날짜도 남는다. 공개 조회와 규칙은 `visible` 또는 `published`를 사용한다. 운영에서 실제 재공개가 발생했는지는 미확인이다. [관리자 목록·복원](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/components/admin-console.tsx#L194) · [저장](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/components/admin-console.tsx#L451) · [규칙](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/firestore.rules#L120) | 관리자 UI에서 복원 전 공개를 차단하고 Firestore 쓰기 규칙도 같은 조건을 보장하게 한다. 기존 데이터에 ‘보관+공개’ 조합이 있는지 권한 있는 운영자가 건수로 확인하고, 해당 건은 공개 의사를 확인해 정리한다. | 보관 후 새로 조회하면 구성원은 익명 목록에서 사라지고, 활동은 익명 목록과 상세에서 숨겨진다. 보관 중 공개 저장은 거절되고 ‘복원’ 직후에도 비공개다. 별도 공개를 거친 항목만 보이며 기존 공개 목록 쿼리가 계속 작동한다. |
+| **새 구성원 폼이 이전 사람의 이름과 공개 체크를 물려받음.** 기존 문서 편집 중 ‘새 항목 추가’를 누르면 제목은 바뀌지만 폼 상태가 유지된다. 실제 `EditorForm`과 합성 DOM에서 이전 이름과 공개 체크가 남는 것을 확인했다. [모드 전환](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/components/admin-console.tsx#L177) · [폼 초기화](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/components/admin-console.tsx#L301) | 새 작성 세션에서 폼을 다시 초기화한다. 저장하지 않은 변경의 폐기 확인을 유지한다. | 공개 구성원 편집→신규 작성 시 이름·ID가 비고 공개는 꺼진다. 폐기 취소 시 입력이 유지되고, 폐기 확인 후에는 이전 개인정보가 사라진다. |
+| **저장소 쓰기가 실패하면 분석 거부가 무시됨.** 기존 선택이 `granted`이고 읽기는 가능하나 쓰기가 실패하는 조건에서 실제 함수에 `denied`를 전달한 후에도 읽기 결과가 `granted`였다. 철회 화면은 이때도 재로드한다. [동의 저장·조회](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/lib/analytics-consent.ts#L24) · [철회 처리](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/components/analytics-preferences.tsx#L8) | 철회 즉시 현재 페이지의 추적을 끄고, 저장 결과에 따라 재로드를 결정한다. 영구 저장에 실패하면 해당 세션의 거부를 유지하고 방문자에게 저장 상태를 알린다. | 정상 저장·쓰기만 차단·저장소 전체 차단에서 철회 직후 새 이벤트가 없다. 정상 저장 조건에서는 새로고침·다른 열린 탭에도 철회가 반영된다. 저장 실패 시 기존 동의를 다시 읽는 자동 재로드가 없다. |
+| **동시 저장이 기존 변경을 덮을 수 있음.** 같은 ID의 신규 생성은 존재 확인과 쓰기가 분리돼 있다. 편집은 최초에 읽은 모든 폼 필드를 문서 버전 비교 없이 병합하므로 오래된 탭의 저장으로 나중에 한 수정이나 비공개 처리를 되돌릴 수 있다. 소스에서 확인한 경쟁 조건이다. [저장 경로](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/components/admin-console.tsx#L428) | 공개 문서와 내부 메타데이터를 함께 쓰는 원자성을 유지하면서 트랜잭션에서 신규 문서의 부재 또는 기존 문서의 편집 기준 버전을 검사한다. 충돌하면 입력을 보존하고 새 상태를 볼 수 있게 한다. | 두 편집자가 같은 ID로 생성하면 한 번만 생성된다. 한쪽이 공개를 해제한 후 오래된 탭에서 저장해도 비공개 상태와 먼저 저장한 값이 유지된다. |
+
+**행사 전 콘텐츠 작업.** 11월 18일 운영 홈은 등록된 활동이 없다고 안내하고 활동 페이지는 8월 10일까지의 공식 기록 4건을 보여준다. 공식 챕터 목록에서 **과육톤**을 확인했다. 게시할 일정은 공식 행사 상세의 11월 24일 18:30–22:00(KST)다. 행사일 전에 기존 활동 관리 기능으로 확정된 행사명·일정·공식 출처를 게시하고, 홈과 활동 목록에서 상세까지 따라갈 수 있는지 확인한다. 과거 행사 제목 4개 중 3개가 챕터 첫 화면으로 연결되므로 확인된 개별 행사 주소도 함께 연결한다. 동아리 신입 모집의 마감 상태와 개별 행사 참가 안내는 각각의 공지를 따른다. [운영 활동 페이지](https://gdgoc-sahmyook.web.app/activities/) · [공식 챕터 일정과 행사 목록](https://gdg.community.dev/gdg-on-campus-sahmyook-university-seoul-south-korea/)
+
+**의존성 패치도 병행한다.** 잠긴 Next.js 16.3.5에 해당하는 Critical 3건의 조건은 Node의 OG 이미지 생성, 서버 이미지 최적화, 특정 서버 캐시 함수다. 이 앱은 정적 export를 Firebase Hosting에 배포하고 이미지 최적화를 끈다. 소스에서 `next/og` 및 `use cache` 사용도 찾지 못했다. 이 세 권고가 운영에서 악용된 증거는 없다. Next.js와 연동 패키지, Firebase의 전이 의존성을 호환되는 패치로 갱신하고 재감사한다. 완료 기준은 Critical·High 각각의 해소 또는 남은 권고별 적용 조건·담당·후속 버전 기록, 재빌드, 규칙 테스트, 공개 페이지와 관리자 로그인 재확인이다. [배포 설정](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/next.config.ts#L5) · [OG 생성 권고](https://github.com/vercel/next.js/security/advisories/GHSA-vcvr-r3jv-pc5j) · [이미지 최적화 권고](https://github.com/vercel/next.js/security/advisories/GHSA-2464-fhr4-w9xw) · [캐시 함수 권고](https://github.com/vercel/next.js/security/advisories/GHSA-673q-mjm6-r5xr)
+
+## P2 · 다음 배포에 반영할 일
+
+| 대상 | 문제와 수정 계획 | 완료 기준 |
+|---|---|---|
+| 공개 목록의 연결 장애 | 빈 캐시에서 네트워크를 끈 Firestore SDK가 성공한 빈 스냅샷(`fromCache=true`)을 반환했다. 공개 목록 훅은 이를 그대로 소비해 ‘등록 없음’을 표시한다. 서버가 확인한 빈 결과와 오프라인 결과를 구분하고 다시 시도를 제공한다. [공개 조회 훅](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/lib/use-public-data.ts#L21) | 온라인 0건은 빈 상태, 최초 오프라인은 연결 안내, 연결 복구 후 재시도는 실제 목록이 된다. 기존 캐시가 있는 경우도 확인한다. |
+| 활동·프로젝트 상세 주소 | 카드는 `slug`로 링크하지만 상세는 그 값을 문서 ID로 직접 조회한다. 테스트 데이터에도 두 값이 다른 공개 활동이 있다. 신규 쓰기의 ID 규칙을 맞추고 기존 공유 주소에는 공개 slug로 찾을 수 있는 경로를 둔다. 잘못된 주소 값은 SDK 호출 전에 처리한다. [카드 링크](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/components/public-content.tsx#L101) · [상세 조회](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/lib/use-public-data.ts#L41) · [기존 예시](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/tests/firestore.rules.test.mjs#L33) | 두 종류의 상세에서 ID 일치·불일치·한글 주소가 열린다. 누락·잘못된 주소에는 목록 복귀가 있고, 비공개 문서의 정보는 표시하지 않는다. |
+| 모집 조회와 재시도 | 상태·역할·절차는 최초 요청을 공유해도 각자 오류와 재시도 상태를 갖는다. 한 영역만 성공하면 한 화면에 정상 공고와 오류가 함께 남는다. 모집 페이지가 결과와 재시도를 한 번 관리하고 오류·로딩에도 페이지 제목을 제공한다. [조회 상태](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/components/public-content.tsx#L38) · [모집 페이지](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/app/recruit/page.tsx#L11) | 합성 조회 실패 후 한 번의 재시도로 세 영역이 같은 공고를 표시한다. 예정·진행·마감 경계에서 지원 링크가 정확하고 오류·로딩에도 H1이 있다. |
+| 현재 기수와 목록의 일치 | 현재 기수 문서가 이름을 별도로 복사한다. 카탈로그에서 현재 항목을 숨기거나 이름을 바꾸면 포인터가 어긋날 수 있다. 현재 항목 비공개 전 다른 기수를 선택하게 하고, 이름 변경 시 두 곳을 함께 갱신한다. 예약 ID `current`도 일반 기수 쓰기에서 제외한다. [현재 기수 저장](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/components/admin-console.tsx#L239) · [규칙](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/firestore.rules#L144) | 기수 이름 변경·교체·비공개 후 관리자와 공개 목록, 현재 모집 참조가 일치한다. 테스트에서는 예전 형식의 기수 문서도 함께 읽는다. |
+| 관리자 표시 순서·키보드 | 숫자 순서를 비우면 병합 쓰기의 대상에서 빠져 옛 값이 남는다. 실제 SDK의 전송 전 필드 마스크에서 확인했다. 편집 저장 직후에는 목록을 다시 불러오는 동안 기존 행이 사라져 수정 버튼의 포커스 복원도 실패할 수 있다. 빈 기존 숫자는 명시적으로 제거하고, 행을 다시 그린 뒤 포커스를 복원한다. [필드 직렬화](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/components/admin-console.tsx#L565) · [포커스 복원](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/components/admin-console.tsx#L184) | `1 → 빈 값`은 기본 정렬로 돌아가고 `0`은 보존된다. 느린 목록 재조회에서 수정 버튼으로, 해당 행이 사라지면 보이는 대체 조작으로 포커스가 돌아간다. |
+| 대비와 현재 위치 표시 | 운영에서 홈 Learn 카드와 모집 첫 역할 카드의 16px 본문 대비는 4.426:1, 모집의 14px 라벨은 4.473:1이었다. 해당 배경 위의 텍스트 색을 진하게 한다. 데스크톱 모집 메뉴의 Recruit·Join us가 동시에 현재 페이지로 표시되는 것도 수정한다. [스타일](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/app/globals.css#L113) · [메뉴](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/components/desktop-nav.tsx#L12) · [WCAG 일반 텍스트 대비 기준](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html) | 브라우저 계산 색상으로 세 조합 모두 4.5:1 이상, 모집 페이지에서 주요 메뉴의 현재 링크는 1개다. |
+| 배포 후 확인 | 현재 배포 검사는 세 경로의 HTML에서 공통 브랜드명을 찾는다. Firebase 앱 설정 누락, 빈 셸, 데이터 조회 실패를 놓칠 수 있다. 운영 빌드에서 필수 설정을 검증하고 배포 후 공개 화면 고유 요소와 데이터 조회의 성공·오류 상태를 확인한다. [배포 워크플로](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/.github/workflows/firebase-hosting.yml#L83) · [Firebase 초기화](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/lib/firebase.ts#L13) | 설정 누락 빌드는 명확히 실패한다. 합성 검증에서 연결 장애가 실패로 잡히고 정상 빈 목록은 통과한다. 관리자 쓰기 검사는 에뮬레이터나 별도 테스트 프로젝트에서 수행한다. |
+
+## P3 · 후속 개선
+
+- **홈 읽기 비용과 JS.** 홈은 활동 3건·프로젝트 2건을 표시하기 전에 공개 문서를 전부 읽으며, 공개 페이지에서도 Firebase Auth를 초기화한다. Auth 초기화를 관리자 진입으로 옮겨 같은 빌드 조건에서 gzip 크기를 비교한다. 홈 조회량을 줄일 때는 정렬 키가 없는 옛 문서와 기존 노출 순서를 보존하고, 문서 수를 늘린 합성 데이터로 읽기량을 비교한다. [홈 목록](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/components/public-content.tsx#L65) · [Firebase 초기화](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/lib/firebase.ts#L16)
+- **검색·공유 주소.** 사이트맵의 하위 주소 6개는 끝 슬래시가 없고 각 페이지의 canonical에는 있다. 운영의 두 About 주소 모두 직접 200을 반환했다. 사이트맵과 canonical을 통일하고, 공유가 중요한 공개 메뉴는 페이지별 OG 제목·설명을 준다. 개별 상세는 현재 고정 `noindex`와 공통 공유 이미지를 사용한다. 상세 색인이나 개별 미리보기가 필요하면 새 게시물을 재배포 없이 공개하는 현재 요구를 보존하는 방식을 먼저 결정한다. [사이트맵](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/app/sitemap.ts#L7) · [공통 OG](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/app/layout.tsx#L14) · [상세 메타데이터](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/src/app/activities/detail/page.tsx#L5)
+- **로컬 배포본 실행.** `pnpm start`가 호출하는 `next start`는 설치된 Next 버전에서 `output: "export"` 조합을 거절한다. 기존 Firebase Hosting 에뮬레이터 등으로 `out`을 제공하는 명령과 README를 맞춘다. 빌드 후 홈, 상세 직접 진입과 새로고침을 확인한다. [실행 스크립트](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/package.json#L12) · [정적 export 설정](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/next.config.ts#L5)
+
+## 실행 순서와 남은 검증
+
+1. 콘텐츠 담당자는 행사 전에 공식 안내를 반영한다. 개발자는 관리자 공개 상태·신규 폼·저장 충돌을 한 작업으로, 분석 철회와 의존성 패치를 각각 독립된 변경으로 진행한다.
+2. 그다음 공개 조회·상세·모집 복구, 관리자 편집과 접근성, 배포 확인을 진행한다. 각 변경은 위 완료 기준에 해당하는 회귀 검사와 기존 테스트 15개, 타입 검사·린트·정적 빌드를 거친다.
+3. 배포 전 테스트 프로젝트에서 Google 로그인→권한 확인→합성 콘텐츠 작성·공개·보관·복원을 한 차례 연결한다. 운영은 기존 워크플로에서 규칙을 먼저 배포하므로 그 시점에도 이전 클라이언트의 정상적인 공개 조회가 작동하는지 확인한다. 규칙 배포와 Hosting 배포가 모두 성공한 후에는 공개된 콘텐츠로 목록→상세, 모집 상태, 동의·거부를 읽기 위주로 재확인한다. [배포 순서](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/blob/dd304445d521d31f138a8738c4b0eb7df952b034/.github/workflows/firebase-hosting.yml#L65)
+
+이번 점검에서 운영 관리자 로그인·쓰기, 열린 모집의 실제 지원 제출, 실제 GA4 수신, 실기기 iOS/Android 및 스크린 리더, 현장 성능 75백분위는 검증하지 않았다. 운영 개인정보 노출이나 편집 충돌 발생 건수도 확인하지 않았다. 이 절까지의 내용은 수정 전 점검 결과다.

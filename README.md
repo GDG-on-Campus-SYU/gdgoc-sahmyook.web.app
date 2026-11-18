@@ -28,8 +28,12 @@ GA4는 Google Analytics의 웹 데이터 스트림에서 측정 ID(`G-...`)를 �
 ```bash
 pnpm typecheck
 pnpm lint
+pnpm test:unit
+pnpm test:rules
 pnpm build
 ```
+
+`pnpm start`는 빌드한 `out/`을 Firebase Hosting 에뮬레이터로 제공합니다. 공개 데이터의 대상은 빌드에 사용한 Firebase 설정을 따릅니다. 운영 배포는 같은 저장소의 `build:hosting`으로 필수 환경변수와 배포 프로젝트의 일치를 검사합니다. 배포 후 `SITE_URL`을 설정하고 Chrome이 설치된 환경에서 `pnpm verify:site`를 실행하면 빌드 자산, 공개 목록·상세, 모집, 관리자 로그인 화면을 확인합니다.
 
 GitHub Actions 배포에는 Firebase 서비스 계정 JSON을 `FIREBASE_SERVICE_ACCOUNT` Secret으로, Firebase와 사이트 설정값을 같은 이름의 Repository Variables로 등록합니다. 같은 저장소의 Pull Request는 Preview Channel, 포크 Pull Request는 검증만 수행하며, `main`은 Production Channel에 배포됩니다.
 

@@ -116,6 +116,7 @@ h3 { font-size: clamp(1.5rem, 2.1vw, 1.75rem); }
 .value-dot { position: absolute; top: 30px; left: 30px; width: 12px; height: 12px; border-radius: 50%; }
 .value-blue { background: var(--blue-soft); }
 .value-blue h3 { color: var(--blue-dark); }
+.value-blue p { color: var(--body); }
 .value-blue .value-dot { background: var(--blue); }.value-red .value-dot { background: var(--red); }.value-green .value-dot { background: var(--green); }.value-yellow .value-dot { background: var(--yellow); }
 
 .filter-row { display: flex; gap: 8px; margin-bottom: 40px; overflow-x: auto; padding: 4px; scrollbar-width: thin; }
@@ -212,6 +213,8 @@ h3 { font-size: clamp(1.5rem, 2.1vw, 1.75rem); }
 .role-cards span { color: var(--blue); font-size: .875rem; font-weight: 820; letter-spacing: .08em; }
 .role-cards h3 { margin: auto 0 28px; font-size: clamp(1.5rem, 2.2vw, 1.875rem); }
 .role-cards p { margin: 0; color: var(--muted); }
+.role-cards article:first-child p { color: var(--body); }
+.role-cards article:first-child span { color: var(--blue-dark); }
 .process-list { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0 0 96px; padding: 0; list-style: none; }
 .process-list li { position: relative; min-height: 150px; padding: 20px 28px; border-top: 2px solid var(--line); }
 .process-list li::before { position: absolute; top: -7px; left: 28px; width: 12px; height: 12px; border: 3px solid white; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 1px var(--blue); content: ""; }

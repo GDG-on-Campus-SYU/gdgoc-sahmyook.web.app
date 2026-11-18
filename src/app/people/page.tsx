@@ -1,7 +1,7 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/page-metadata";
 import { PeopleCollection, PeopleHero } from "@/components/public-content";
 
-export const metadata: Metadata = { title: "People", description: "GDGOC Sahmyook을 함께 만드는 구성원을 소개합니다.", alternates: { canonical: "/people/" } };
+export const metadata = pageMetadata("People", "GDGOC Sahmyook을 함께 만드는 구성원을 소개합니다.", "/people/");
 
 export default function PeoplePage() {
   return (

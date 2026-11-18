@@ -1,5 +1,4 @@
 import { getApp, getApps, initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const config = {
@@ -11,7 +10,6 @@ const config = {
 };
 
 export const isFirebaseConfigured = Object.values(config).every(Boolean);
-const app = isFirebaseConfigured ? (getApps().length ? getApp() : initializeApp(config)) : null;
+export const app = isFirebaseConfigured ? (getApps().length ? getApp() : initializeApp(config)) : null;
 
-export const auth = app ? getAuth(app) : null;
 export const db = app ? getFirestore(app) : null;

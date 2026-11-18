@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Analytics } from "@/components/analytics";
 import { SiteFooter, SiteHeader } from "@/components/site-shell";
+import { chapterOpenGraph } from "@/lib/page-metadata";
 import "./fonts/google-sans-v70/google-sans.css";
 import "./fonts/noto-sans-kr-v39/noto-sans-kr.css";
 import "./globals.css";
@@ -11,11 +12,10 @@ export const metadata: Metadata = {
   title: { default: "GDGOC Sahmyook | Google Developer Groups on Campus", template: "%s | GDGOC Sahmyook" },
   description: "삼육대학교 학생 개발자 커뮤니티 GDGOC Sahmyook입니다. 함께 배우고, 만들고, 경험을 나눕니다.",
   openGraph: {
+    ...chapterOpenGraph,
+    url: "/",
     title: "GDGOC Sahmyook",
     description: "Connect. Learn. Build. Together.",
-    type: "website",
-    locale: "ko_KR",
-    images: [{ url: "/brand/gdgoc-symbol-transparent.png", width: 1254, height: 1254, alt: "GDGOC Sahmyook 심벌" }],
   },
 };
 

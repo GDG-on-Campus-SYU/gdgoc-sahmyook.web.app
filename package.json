@@ -9,25 +9,28 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "build:hosting": "node scripts/check-hosting-config.mjs && next build",
+    "start": "pnpm dlx firebase-tools@15.30.2 emulators:start --only hosting --project demo-gdgoc-preview",
+    "verify:site": "node scripts/verify-site.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test:unit": "node --experimental-strip-types --test tests/recruitment-status.test.mjs tests/member-presentation.test.mjs tests/analytics-consent.test.mjs tests/migrate-public-metadata.test.mjs",
-    "test:rules": "pnpm dlx firebase-tools@15.30.2 emulators:exec --only firestore \"node --test tests/firestore.rules.test.mjs\""
+    "test:unit": "node --experimental-strip-types --test tests/recruitment-status.test.mjs tests/member-presentation.test.mjs tests/analytics-consent.test.mjs tests/migrate-public-metadata.test.mjs tests/public-archive.test.mjs tests/hosting-config.test.mjs",
+    "test:rules": "pnpm dlx firebase-tools@15.30.2 emulators:exec --only firestore --project demo-gdgoc-rules \"node --experimental-strip-types --test --test-concurrency=1 tests/firestore.rules.test.mjs tests/public-archive.emulator.mjs\""
   },
   "dependencies": {
-    "firebase": "^12.19.0",
-    "next": "^16.3.5",
-    "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "firebase": "^13.4.0",
+    "next": "^16.4.6",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
-    "@firebase/rules-unit-testing": "5.0.2",
+    "@firebase/rules-unit-testing": "6.0.0",
     "@types/node": "^26.6.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^16.3.5",
+    "eslint-config-next": "^16.4.6",
+    "playwright-core": "1.65.1",
     "typescript": "^6.0.3"
   }
 }

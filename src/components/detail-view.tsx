@@ -8,8 +8,9 @@ import type { Activity, Generation, Project } from "@/types/content";
 import { trackAnalyticsEvent } from "@/lib/analytics-consent";
 
 export function ActivityDetail() {
-  const slug = useSearchParams().get("slug");
-  const { item: activity, loading, error, retry } = usePublicDocument<Activity>("activities", slug);
+  const params = useSearchParams();
+  const id = params.get("id");
+  const { item: activity, loading, error, retry } = usePublicDocument<Activity>("activities", id ?? params.get("slug"), id === null);
   useDocumentTitle(activity?.title);
 
   if (loading) return <DetailLoading />;
@@ -39,8 +40,9 @@ export function ActivityDetail() {
 }
 
 export function ProjectDetail() {
-  const slug = useSearchParams().get("slug");
-  const { item: project, loading, error, retry } = usePublicDocument<Project>("projects", slug);
+  const params = useSearchParams();
+  const id = params.get("id");
+  const { item: project, loading, error, retry } = usePublicDocument<Project>("projects", id ?? params.get("slug"), id === null);
   useDocumentTitle(project?.title);
 
   if (loading) return <DetailLoading />;

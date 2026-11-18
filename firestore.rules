@@ -20,6 +20,28 @@ service cloud.firestore {
           || data.startDate == '' || data.endDate == '' || data.endDate >= data.startDate);
     }
 
+    function validArchiveTransition(data, field) {
+      return !data[field] || (!('archivedAt' in data)
+        && (request.method == 'create' || !('archivedAt' in resource.data)));
+    }
+
+    function validSlug(id, data) {
+      return data.slug == id || (request.method == 'update' && data.slug == resource.data.slug);
+    }
+
+    function currentMatchesCatalog(id, data) {
+      let pointer = /databases/$(database)/documents/generations/current;
+      return !existsAfter(pointer) || getAfter(pointer).data.get('generationId', '') != id
+        || (data.published && !('archivedAt' in data) && getAfter(pointer).data.label == data.label);
+    }
+
+    function catalogMatchesCurrent(data) {
+      let entry = /databases/$(database)/documents/generations/$(data.generationId);
+      return data.generationId != 'current' && existsAfter(entry)
+        && getAfter(entry).data.published == true && !('archivedAt' in getAfter(entry).data)
+        && getAfter(entry).data.label == data.label;
+    }
+
     function isValidActivity(data) {
       return data.keys().hasOnly([
           'title', 'slug', 'summary', 'content', 'category', 'startDate', 'endDate',
@@ -119,25 +141,27 @@ service cloud.firestore {
 
     match /members/{id} {
       allow read: if resource.data.visible == true || isEditor();
-      allow create, update: if isEditor() && isValidMember(request.resource.data, id);
+      allow create, update: if isEditor() && validArchiveTransition(request.resource.data, 'visible') && isValidMember(request.resource.data, id);
       allow delete: if false;
     }
 
     match /activities/{id} {
       allow read: if resource.data.published == true || isEditor();
-      allow create, update: if isEditor() && isValidActivity(request.resource.data);
+      allow create, update: if isEditor() && validArchiveTransition(request.resource.data, 'published')
+        && validSlug(id, request.resource.data) && isValidActivity(request.resource.data);
       allow delete: if false;
     }
 
     match /projects/{id} {
       allow read: if resource.data.published == true || isEditor();
-      allow create, update: if isEditor() && isValidProject(request.resource.data);
+      allow create, update: if isEditor() && validArchiveTransition(request.resource.data, 'published')
+        && validSlug(id, request.resource.data) && isValidProject(request.resource.data);
       allow delete: if false;
     }
 
     match /recruitment/{id} {
       allow read: if resource.data.published == true || isEditor();
-      allow create, update: if isEditor() && isValidRecruitment(request.resource.data);
+      allow create, update: if isEditor() && validArchiveTransition(request.resource.data, 'published') && isValidRecruitment(request.resource.data);
       allow delete: if false;
     }
 
@@ -147,14 +171,16 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['generationId', 'label', 'published', 'updatedAt'])
         && request.resource.data.generationId is string
         && request.resource.data.label is string
-        && (!('published' in request.resource.data) || request.resource.data.published is bool)
-        && request.resource.data.updatedAt is timestamp;
+        && request.resource.data.published == true
+        && request.resource.data.updatedAt is timestamp
+        && catalogMatchesCurrent(request.resource.data);
       allow delete: if false;
     }
 
     match /generations/{id} {
       allow read: if resource.data.published == true || isEditor();
-      allow create, update: if isEditor() && isValidGeneration(request.resource.data);
+      allow create, update: if id != 'current' && isEditor() && validArchiveTransition(request.resource.data, 'published')
+        && isValidGeneration(request.resource.data) && currentMatchesCatalog(id, request.resource.data);
       allow delete: if false;
     }
 

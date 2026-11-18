@@ -1,13 +1,13 @@
-import type { Metadata } from "next";
-import { RecruitmentDetails, RecruitmentPanel, RecruitmentRoles } from "@/components/public-content";
+import { pageMetadata } from "@/lib/page-metadata";
+import { RecruitmentDetails, RecruitmentPanel, RecruitmentProvider, RecruitmentRoles } from "@/components/public-content";
 
-export const metadata: Metadata = { title: "Recruit", description: "GDGOC Sahmyook 모집 일정, 역할과 지원 방법을 확인하세요.", alternates: { canonical: "/recruit/" } };
+export const metadata = pageMetadata("Recruit", "GDGOC Sahmyook 모집 일정, 역할과 지원 방법을 확인하세요.", "/recruit/");
 
 const qualities = ["함께 활동하려는 사람", "다른 사람의 생각을 존중하는 사람", "배우고 공유하려는 사람", "맡은 활동에 책임을 다하는 사람"];
 
 export default function RecruitPage() {
   return (
-    <>
+    <RecruitmentProvider>
       <section className="recruit-hero container"><RecruitmentPanel /></section>
       <section className="section container editorial-grid">
         <p className="eyebrow">Who we are looking for</p>
@@ -23,6 +23,6 @@ export default function RecruitPage() {
         <div className="section-heading"><div><p className="eyebrow">Recruitment process</p><h2>지원부터 합류까지</h2></div></div>
         <RecruitmentDetails />
       </section>
-    </>
+    </RecruitmentProvider>
   );
 }

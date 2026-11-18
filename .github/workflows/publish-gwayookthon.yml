@@ -1,0 +1,28 @@
+name: Publish the 2026 Gwayookthon activity
+
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-gwayookthon-2026
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - run: python3 tests/gwayookthon_publication.py
+      - name: Prepare the Firestore client
+        run: |
+          python3 -m venv "$RUNNER_TEMP/gwayookthon"
+          "$RUNNER_TEMP/gwayookthon/bin/pip" install google-cloud-firestore==2.21.0
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - name: Verify the official event and publish once
+        run: '"$RUNNER_TEMP/gwayookthon/bin/python" scripts/publish-gwayookthon.py'

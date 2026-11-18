@@ -62,10 +62,9 @@ jobs:
         if: github.event_name == 'push'
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-      - run: pnpm dlx firebase-tools@15.30.2 deploy --only firestore:rules --project "${{ vars.FIREBASE_PROJECT_ID }}" --non-interactive
-        if: github.event_name == 'push'
-      - run: pnpm build
+      - run: pnpm build:hosting
         env:
+          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
           NEXT_PUBLIC_FIREBASE_API_KEY: ${{ vars.NEXT_PUBLIC_FIREBASE_API_KEY }}
           NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ vars.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
           NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
@@ -73,6 +72,10 @@ jobs:
           NEXT_PUBLIC_FIREBASE_APP_ID: ${{ vars.NEXT_PUBLIC_FIREBASE_APP_ID }}
           NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
           NEXT_PUBLIC_GA_MEASUREMENT_ID: ${{ vars.NEXT_PUBLIC_GA_MEASUREMENT_ID }}
+      - run: pnpm dlx firebase-tools@15.30.2 deploy --only firestore:rules,firestore:indexes --project "$FIREBASE_PROJECT_ID" --non-interactive
+        if: github.event_name == 'push'
+        env:
+          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
       - uses: FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a # v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
@@ -85,7 +88,8 @@ jobs:
         env:
           SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
         run: |
-          test -n "$SITE_URL"
-          for path in / /people/ /recruit/; do
-            curl --fail --silent --show-error --retry 5 --retry-all-errors "${SITE_URL%/}${path}" | grep -q "GDGOC Sahmyook"
+          for attempt in 1 2 3; do
+            if pnpm verify:site; then exit 0; fi
+            if [ "$attempt" -lt 3 ]; then sleep 10; fi
           done
+          exit 1
