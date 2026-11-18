@@ -2,6 +2,10 @@
 
 ## 수정 후 확인 기록
 
+과육톤을 운영 Firestore에 한 번 게시했다. 로그인하지 않은 Chrome에서 홈과 활동 목록에 카드가 각각 하나씩 나타났고, 두 카드 모두 같은 상세로 열렸다. 직접 새로고침한 뒤에도 행사명·한국 시간·장소·공식 출처가 유지됐다. 과거 행사 4개의 개별 공식 상세도 모두 HTTP 200이었고, 이 과정에서 두유톤의 행사일을 한국 시간 기준 5월 25일로 바로잡았다. [운영 과육톤 상세](https://gdgoc-sahmyook.web.app/activities/detail/?slug=gwayookthon-2026) · [게시 실행](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/actions/runs/44328443614) · [두유톤 공식 일정](https://gdg.community.dev/events/details/google-gdg-on-campus-sahmyook-university-seoul-south-korea-presents-build-with-ai-2026-duyutongdgoc-sahmyook/)
+
+첫 운영 배포에서는 서비스 계정이 홈 정렬용 복합 색인 생성 시 HTTP 403을 받았다. 보안 규칙·Hosting은 기존 배포 계정으로 반영하고, `activities`와 `projects`의 색인은 색인 관리 권한이 있는 계정에서 별도로 관리한다. 공개 목록과 카드 순서는 색인 생성 전에도 유지된다. [최초 배포 로그](https://github.com/GDG-on-Campus-SYU/gdgoc-sahmyook.web.app/actions/runs/44327593657)
+
 | 항목 | 변경과 검증 결과 |
 |---|---|
 | 보관·복원과 동시 편집 | 실제 쓰기 함수를 사용하는 에뮬레이터에서 구성원·활동의 익명 목록, 직접 읽기, 복원 후 비공개, 별도 재공개를 확인했다. 동일 ID 동시 생성 하나만 성공했고 수정 시각이 없는 기존 문서에서도 오래된 저장을 거절했다. 당시 운영 공개 문서 중 보관 표시가 남은 건은 5개 컬렉션 모두 0건이었다. |
