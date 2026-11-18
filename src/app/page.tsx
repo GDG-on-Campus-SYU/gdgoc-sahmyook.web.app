@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ActivityCollection, ProjectCollection, RecruitmentPanel } from "@/components/public-content";
+import { ActivityCollection, ProjectCollection, RecruitmentPanel, RecruitmentProvider } from "@/components/public-content";
 import { SectionHeading } from "@/components/site-shell";
 
 const values = [
@@ -86,7 +86,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section container"><RecruitmentPanel compact /></section>
+      <section className="section container"><RecruitmentProvider><RecruitmentPanel compact /></RecruitmentProvider></section>
     </>
   );
 }

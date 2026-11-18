@@ -1,14 +1,14 @@
-import type { Metadata } from "next";
+import { pageMetadata } from "@/lib/page-metadata";
 import { ActivityCollection } from "@/components/public-content";
 import { PageHero } from "@/components/site-shell";
 
-export const metadata: Metadata = { title: "Activities", description: "GDGOC Sahmyook의 스터디, 세션, 네트워킹과 협업 활동을 확인하세요.", alternates: { canonical: "/activities/" } };
+export const metadata = pageMetadata("Activities", "GDGOC Sahmyook의 스터디, 세션, 네트워킹과 협업 활동을 확인하세요.", "/activities/");
 
 const chapterEvents = [
-  { date: "2026.08.10", title: "새 운영진 커피챗 및 네트워킹 세션", href: "https://gdg.community.dev/gdg-on-campus-sahmyook-university-seoul-south-korea/" },
+  { date: "2026.08.10", title: "새 운영진 커피챗 및 네트워킹 세션", href: "https://gdg.community.dev/events/details/google-gdg-on-campus-sahmyook-university-seoul-south-korea-presents-sae-unyeongjin-keopicaes-mic-neteuweoking-sesyeon/" },
   { date: "2026.05.24", title: "Build with AI 2026 : 두유톤", href: "https://gdg.community.dev/events/details/google-gdg-on-campus-sahmyook-university-seoul-south-korea-presents-build-with-ai-2026-duyutongdgoc-sahmyook/" },
-  { date: "2026.02.06", title: "2026 GDGoC 연합해커톤: ONE WAVE", href: "https://gdg.community.dev/gdg-on-campus-sahmyook-university-seoul-south-korea/" },
-  { date: "2026.02.02", title: "ONE WAVE / 해커톤 특강", href: "https://gdg.community.dev/gdg-on-campus-sahmyook-university-seoul-south-korea/" },
+  { date: "2026.02.06", title: "2026 GDGoC 연합해커톤: ONE WAVE", href: "https://gdg.community.dev/events/details/google-gdg-on-campus-kangnam-university-yongin-south-korea-presents-2026-gdgoc-yeonhabhaekeoton-one-wave/" },
+  { date: "2026.02.02", title: "ONE WAVE / 해커톤 특강", href: "https://gdg.community.dev/events/details/google-gdg-on-campus-kangnam-university-yongin-south-korea-presents-2026-gdgoc-yeonhabhaekeoton-one-wave-haekeoton-teuggang/" },
 ] as const;
 
 export default function ActivitiesPage() {

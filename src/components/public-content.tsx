@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { loadCurrentGeneration } from "@/lib/use-current-generation";
@@ -10,6 +10,8 @@ import { effectiveRecruitmentStatus } from "@/lib/recruitment-status";
 import { trackAnalyticsEvent } from "@/lib/analytics-consent";
 import { memberRoleForGeneration } from "@/lib/member-presentation";
 import { usePublicCollection } from "@/lib/use-public-data";
+import { archiveHref, compareActivities, compareProjects, generationOptions } from "@/lib/public-archive";
+import { GenerationName } from "@/components/generation-name";
 import { PageHero } from "@/components/site-shell";
 import type { Activity, Generation, Member, Project, Recruitment } from "@/types/content";
 
@@ -62,11 +64,11 @@ export function PeopleHero() {
 }
 
 export function ActivityCollection({ compact = false }: { compact?: boolean }) {
-  const { items, loading, error, retry } = usePublicCollection<Activity>("activities");
+  const { items, cached, loading, error, retry } = usePublicCollection<Activity>("activities", "published", true, compact ? 3 : 0);
   const { items: generationItems } = usePublicCollection<Generation>("generations", "published", !compact);
   const [category, setCategory] = useState("All");
   const [generation, setGeneration] = useState("All");
-  const generations = useMemo(() => contentGenerations(items, generationItems), [items, generationItems]);
+  const generations = useMemo(() => generationOptions(generationItems, items.map((item) => item.generation)), [items, generationItems]);
   const sorted = useMemo(() => [...items].sort(compareActivities), [items]);
   const filtered = useMemo(() => sorted.filter((item) =>
     (category === "All" || item.category === category) && (generation === "All" || item.generation === generation)), [category, generation, sorted]);
@@ -77,6 +79,7 @@ export function ActivityCollection({ compact = false }: { compact?: boolean }) {
 
   return (
     <div>
+      {cached && <CachedNotice onRetry={retry} />}
       {!compact && (
         <>
           <GenerationSelect label="활동 기수" value={generation} options={generations} onChange={setGeneration} />
@@ -97,8 +100,8 @@ export function ActivityCollection({ compact = false }: { compact?: boolean }) {
                   <Heading>{activity.title}</Heading>
                   <p>{activity.summary}</p>
                   <div className="card-footer">
-                    <span>{activity.startDate || generations.find(([id]) => id === activity.generation)?.[1] || activity.generation}</span>
-                    <Link href={`/activities/detail/?slug=${encodeURIComponent(activity.slug)}`} aria-label={`${activity.title} 자세히 보기`}>자세히 보기 <span aria-hidden="true">→</span></Link>
+                    <span>{activity.startDate || (compact ? <GenerationName id={activity.generation} /> : generations.find(([id]) => id === activity.generation)?.[1])}</span>
+                    <Link href={archiveHref("activities", activity)} aria-label={`${activity.title} 자세히 보기`}>자세히 보기 <span aria-hidden="true">→</span></Link>
                   </div>
                 </div>
               </article>
@@ -113,10 +116,10 @@ export function ActivityCollection({ compact = false }: { compact?: boolean }) {
 }
 
 export function ProjectCollection({ compact = false }: { compact?: boolean }) {
-  const { items, loading, error, retry } = usePublicCollection<Project>("projects");
+  const { items, cached, loading, error, retry } = usePublicCollection<Project>("projects", "published", true, compact ? 2 : 0);
   const { items: generationItems } = usePublicCollection<Generation>("generations", "published", !compact);
   const [generation, setGeneration] = useState("All");
-  const generations = useMemo(() => contentGenerations(items, generationItems), [items, generationItems]);
+  const generations = useMemo(() => generationOptions(generationItems, items.map((item) => item.generation)), [items, generationItems]);
   const sorted = useMemo(() => [...items].sort(compareProjects), [items]);
   const filtered = useMemo(() => sorted.filter((item) => generation === "All" || item.generation === generation), [generation, sorted]);
   const visibleItems = compact ? filtered.slice(0, 2) : filtered;
@@ -125,6 +128,7 @@ export function ProjectCollection({ compact = false }: { compact?: boolean }) {
   if (error) return <CollectionError text="프로젝트를 불러오지 못했습니다." onRetry={retry} />;
   return (
     <div>
+      {cached && <CachedNotice onRetry={retry} />}
       {!compact && <GenerationSelect label="프로젝트 기수" value={generation} options={generations} onChange={setGeneration} />}
       {!visibleItems.length ? <EmptyState headingLevel={compact ? "h3" : "h2"} title={generation === "All" ? "아직 공개된 프로젝트가 없습니다" : "이 기수의 공개 프로젝트가 없습니다"} text={generation === "All" ? "프로젝트 기록이 공개되면 이곳에 표시됩니다." : "다른 기수를 선택해 보세요."} /> : <div className="project-list">
       {visibleItems.map((project) => {
@@ -132,11 +136,11 @@ export function ProjectCollection({ compact = false }: { compact?: boolean }) {
         return (
           <article className="project-card" key={project.id}>
             <div className="project-copy">
-              <p className="eyebrow">Project · {generations.find(([id]) => id === project.generation)?.[1] || project.generation}</p>
+              <p className="eyebrow">Project · {compact ? <GenerationName id={project.generation} /> : generations.find(([id]) => id === project.generation)?.[1]}</p>
               <Heading>{project.title}</Heading>
               <p>{project.summary}</p>
               {Boolean(project.techStack?.length) && <ul className="tag-list" aria-label="사용 기술">{project.techStack?.map((tech) => <li key={tech}>{tech}</li>)}</ul>}
-              <Link href={`/projects/detail/?slug=${encodeURIComponent(project.slug)}`} className="text-link" aria-label={`${project.title} 프로젝트 보기`}>프로젝트 보기 <span aria-hidden="true">→</span></Link>
+              <Link href={archiveHref("projects", project)} className="text-link" aria-label={`${project.title} 프로젝트 보기`}>프로젝트 보기 <span aria-hidden="true">→</span></Link>
             </div>
           </article>
         );
@@ -151,23 +155,11 @@ function GenerationSelect({ label, value, options, onChange, className = "" }: {
   return <label className={`generation-filter ${className}`}><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}><option value="All">전체</option>{options.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>;
 }
 
-function contentGenerations(items: Array<{ generation?: string }>, generations: Generation[]): [string, string][] {
-  const labels = new Map(generations.filter((item) => item.id !== "current").map((item) => [item.id, item.label || item.id]));
-  for (const item of items) if (item.generation && !labels.has(item.generation)) labels.set(item.generation, item.generation);
-  const order = new Map(generations.map((item) => [item.id, item.order ?? 999]));
-  return [...labels].sort(([a], [b]) => (order.get(a) ?? 999) - (order.get(b) ?? 999) || a.localeCompare(b, "ko"));
-}
-
 export function PeopleCollection() {
-  const { items, loading, error, retry } = usePublicCollection<Member>("members", "visible");
+  const { items, cached, loading, error, retry } = usePublicCollection<Member>("members", "visible");
   const { items: generationItems } = usePublicCollection<Generation>("generations");
   const [generation, setGeneration] = useState("All");
-  const generations = useMemo(() => {
-    const labels = new Map(generationItems.map((item) => [item.id === "current" && item.generationId ? item.generationId : item.id, item.label]));
-    for (const member of items) for (const id of memberGenerations(member)) if (!labels.has(id)) labels.set(id, id);
-    const order = new Map(generationItems.map((item) => [item.id, item.order ?? 999]));
-    return [...labels].sort(([a], [b]) => (order.get(a) ?? 999) - (order.get(b) ?? 999) || a.localeCompare(b, "ko"));
-  }, [generationItems, items]);
+  const generations = useMemo(() => generationOptions(generationItems, items.flatMap(memberGenerations)), [generationItems, items]);
   const sorted = useMemo(() => [...items]
     .filter((member) => generation === "All" || memberGenerations(member).includes(generation))
     .sort((a, b) => (a.order ?? 999) - (b.order ?? 999) || a.name.localeCompare(b.name, "ko")), [generation, items]);
@@ -177,6 +169,7 @@ export function PeopleCollection() {
 
   return (
     <div>
+      {cached && <CachedNotice onRetry={retry} />}
       {generations.length > 0 && (
         <>
           <GenerationSelect label="활동 기수" value={generation} options={generations} onChange={setGeneration} className="mobile-filter" />
@@ -219,8 +212,21 @@ function MemberAvatar({ member }: { member: Member }) {
     : <div className="avatar" aria-hidden="true">{member.name.slice(0, 1)}</div>;
 }
 
+const RecruitmentContext = createContext<ReturnType<typeof useRecruitment> | null>(null);
+
+export function RecruitmentProvider({ children }: { children: React.ReactNode }) {
+  const state = useRecruitment();
+  return <RecruitmentContext.Provider value={state}>{children}</RecruitmentContext.Provider>;
+}
+
+function useRecruitmentState() {
+  const state = useContext(RecruitmentContext);
+  if (!state) throw new Error("RecruitmentProvider is required");
+  return state;
+}
+
 export function RecruitmentPanel({ compact = false }: { compact?: boolean }) {
-  const { recruitment, loading, error, retry } = useRecruitment();
+  const { recruitment, loading, error, retry } = useRecruitmentState();
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 60_000);
@@ -228,8 +234,8 @@ export function RecruitmentPanel({ compact = false }: { compact?: boolean }) {
   }, []);
   const Heading = compact ? "h2" : "h1";
 
-  if (loading) return <div className={`recruitment-panel ${compact ? "compact" : ""}`} aria-busy="true"><p>모집 정보를 불러오는 중입니다.</p></div>;
-  if (error) return <div className={`recruitment-panel ${compact ? "compact" : ""}`} role="alert"><div><p>모집 정보를 불러오지 못했습니다.</p><button className="button" type="button" onClick={retry}>다시 시도</button></div></div>;
+  if (loading) return <div className={`recruitment-panel ${compact ? "compact" : ""}`} aria-busy="true"><div><Heading>모집 안내</Heading><p>모집 정보를 불러오는 중입니다.</p></div></div>;
+  if (error) return <div className={`recruitment-panel ${compact ? "compact" : ""}`} role="alert"><div><Heading>모집 안내</Heading><p>모집 정보를 불러오지 못했습니다.</p><button className="button" type="button" onClick={retry}>다시 시도</button></div></div>;
   if (!recruitment) return <div className={`recruitment-panel ${compact ? "compact" : ""}`}><div><span className="status-badge status-closed">현재 모집 없음</span><Heading>다음 모집을 준비하고 있습니다</Heading><p>확정된 모집 일정과 지원 방법은 이 페이지에서 안내합니다.</p></div></div>;
 
   const effectiveStatus = effectiveRecruitmentStatus(recruitment, now);
@@ -253,9 +259,9 @@ export function RecruitmentPanel({ compact = false }: { compact?: boolean }) {
 }
 
 export function RecruitmentDetails() {
-  const { recruitment, loading, error, retry } = useRecruitment();
+  const { recruitment, loading, error } = useRecruitmentState();
   if (loading) return <CollectionLoading text="모집 절차를 불러오는 중입니다." />;
-  if (error) return <CollectionError text="모집 절차를 불러오지 못했습니다." onRetry={retry} />;
+  if (error) return <p>모집 정보를 다시 불러오면 절차와 FAQ를 확인할 수 있습니다.</p>;
   if (!recruitment) return <EmptyState headingLevel="h3" title="공개된 모집 절차가 없습니다" text="모집이 확정되면 절차와 FAQ를 안내합니다." />;
 
   return (
@@ -269,9 +275,9 @@ export function RecruitmentDetails() {
 }
 
 export function RecruitmentRoles() {
-  const { recruitment, loading, error, retry } = useRecruitment();
+  const { recruitment, loading, error } = useRecruitmentState();
   if (loading) return <CollectionLoading text="모집 역할을 불러오는 중입니다." />;
-  if (error) return <CollectionError text="모집 역할을 불러오지 못했습니다." onRetry={retry} />;
+  if (error) return <p>모집 정보를 다시 불러오면 역할을 확인할 수 있습니다.</p>;
   const roles = recruitment?.roles?.filter((role) => role === "Member" || role === "Team Member") ?? [];
   if (!roles.length) return <EmptyState headingLevel="h3" title="공개된 모집 역할이 없습니다" text="모집 역할이 확정되면 안내합니다." />;
   return <div className="role-cards">{roles.map((role) => <article key={role}><span>{role.toUpperCase()}</span><h3>{role}</h3><p>{roleDescription(role)}</p></article>)}</div>;
@@ -286,20 +292,16 @@ function CollectionLoading({ text }: { text: string }) {
   return <p className="collection-state" role="status" aria-busy="true">{text}</p>;
 }
 
+function CachedNotice({ onRetry }: { onRetry: () => void }) {
+  return <div className="inline-notice" role="status"><p>현재 연결할 수 없어 이전에 불러온 목록을 표시합니다.</p><button type="button" className="button button-secondary" onClick={onRetry}>다시 시도</button></div>;
+}
+
 function CollectionError({ text, onRetry }: { text: string; onRetry: () => void }) {
   return <div className="inline-notice" role="alert"><p>{text}</p><button className="button button-secondary" type="button" onClick={onRetry}>다시 시도</button></div>;
 }
 
 function memberGenerations(member: Member) {
   return member.activityGenerations?.filter(Boolean).length ? member.activityGenerations : member.generation ? [member.generation] : [];
-}
-
-function compareActivities(a: Activity, b: Activity) {
-  return (a.order ?? 999) - (b.order ?? 999) || (b.startDate || "").localeCompare(a.startDate || "") || a.title.localeCompare(b.title, "ko") || a.id.localeCompare(b.id);
-}
-
-function compareProjects(a: Project, b: Project) {
-  return (a.order ?? 999) - (b.order ?? 999) || a.title.localeCompare(b.title, "ko") || a.id.localeCompare(b.id);
 }
 
 function formatDateRange(start?: string, end?: string) {

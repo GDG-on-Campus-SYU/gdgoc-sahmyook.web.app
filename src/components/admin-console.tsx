@@ -2,13 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoogleAuthProvider, User, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
-import { collection, deleteField, doc, getDoc, getDocs, serverTimestamp, writeBatch } from "firebase/firestore";
+import { collection, deleteField, doc, getDoc, getDocs, getDocsFromServer, type DocumentSnapshot } from "firebase/firestore";
 import { adminCollections, AdminCollection, AdminField } from "@/lib/admin-config";
-import { auth, db, isFirebaseConfigured } from "@/lib/firebase";
+import { AdminConflict, saveAdminDocument, setAdminArchived, setAdminCurrent } from "@/lib/admin-writes";
+import { auth } from "@/lib/admin-auth";
+import { db, isFirebaseConfigured } from "@/lib/firebase";
 import { useCurrentGeneration } from "@/lib/use-current-generation";
 import { effectiveRecruitmentStatus } from "@/lib/recruitment-status";
 
-type DocumentRecord = { id: string } & Record<string, unknown>;
+type DocumentRecord = { id: string; snapshot: DocumentSnapshot } & Record<string, unknown>;
 type FaqItem = { question: string; answer: string };
 type GenerationHistoryItem = { generationId: string; role: string; position: string };
 type FormValue = string | boolean | FaqItem[] | GenerationHistoryItem[] | string[];
@@ -136,13 +138,16 @@ function Editor({ user, role }: { user: User; role: string }) {
 function CollectionEditor({ config, userId, dirty, onDirtyChange }: { config: AdminCollection; userId: string; dirty: boolean; onDirtyChange: (dirty: boolean) => void }) {
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [editing, setEditing] = useState<DocumentRecord | null | undefined>(undefined);
+  const [formSession, setFormSession] = useState(0);
   const returnFocusKey = useRef("new");
+  const restoreFocus = useRef(false);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
   const publicField = config.name === "members" ? "visible" : "published";
   const currentGeneration = config.name === "generations" ? documents.find((item) => item.id === "current") : undefined;
+  const currentCatalog = currentGeneration && documents.find((item) => item.id === currentGeneration.generationId);
   const editableDocuments = config.name === "generations" ? documents.filter((item) => item.id !== "current") : documents;
   const filteredDocuments = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase("ko");
@@ -157,8 +162,8 @@ function CollectionEditor({ config, userId, dirty, onDirtyChange }: { config: Ad
     setLoading(true);
     setLoadError("");
     try {
-      const snapshot = await getDocs(collection(db, config.name));
-      setDocuments(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
+      const snapshot = await getDocsFromServer(collection(db, config.name));
+      setDocuments(snapshot.docs.map((item) => ({ ...item.data(), id: item.id, snapshot: item })));
     } catch { setLoadError("목록을 불러오지 못했습니다. Firestore 연결과 권한을 확인해 주세요."); }
     finally { setLoading(false); }
   }
@@ -167,8 +172,8 @@ function CollectionEditor({ config, userId, dirty, onDirtyChange }: { config: Ad
     if (!db) return;
     let active = true;
     const activeDb = db;
-    getDocs(collection(activeDb, config.name))
-      .then((snapshot) => active && setDocuments(snapshot.docs.map((item) => ({ id: item.id, ...item.data() }))))
+    getDocsFromServer(collection(activeDb, config.name))
+      .then((snapshot) => active && setDocuments(snapshot.docs.map((item) => ({ ...item.data(), id: item.id, snapshot: item }))))
       .catch(() => active && setLoadError("목록을 불러오지 못했습니다. Firestore 연결과 권한을 확인해 주세요."))
       .finally(() => active && setLoading(false));
     return () => { active = false; };
@@ -178,61 +183,34 @@ function CollectionEditor({ config, userId, dirty, onDirtyChange }: { config: Ad
     if (dirty && !window.confirm("저장하지 않은 변경사항을 버릴까요?")) return;
     onDirtyChange(false);
     returnFocusKey.current = focusKey;
+    setFormSession((value) => value + 1);
     setEditing(document);
   }
 
   function closeEditor() {
     onDirtyChange(false);
+    restoreFocus.current = true;
     setEditing(undefined);
-    requestAnimationFrame(() => {
-      Array.from(document.querySelectorAll<HTMLButtonElement>("[data-focus-key]"))
-        .find((button) => button.dataset.focusKey === returnFocusKey.current)
-        ?.focus();
-    });
   }
 
-  async function archive(item: DocumentRecord) {
-    if (!db || !window.confirm(`“${String(item[config.titleField] || item.id)}” 항목을 보관 처리할까요? 공개 화면에서는 즉시 숨겨집니다.`)) return;
-    if (config.name === "generations" && currentGeneration?.generationId === item.id) {
-      setLoadError("현재 기수는 보관할 수 없습니다. 다른 기수를 현재로 설정한 뒤 다시 시도해 주세요.");
-      return;
+  useEffect(() => {
+    if (!restoreFocus.current || editing !== undefined || loading) return;
+    restoreFocus.current = false;
+    const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-focus-key]"));
+    (buttons.find((button) => button.dataset.focusKey === returnFocusKey.current) ?? buttons.find((button) => button.dataset.focusKey === "new"))?.focus();
+  }, [editing, loading]);
+
+  async function changeArchive(item: DocumentRecord, archived: boolean) {
+    if (archived && !window.confirm(`“${String(item[config.titleField] || item.id)}” 항목을 보관 처리할까요? 공개 화면에서는 즉시 숨겨집니다.`)) return;
+    setLoadError("");
+    try {
+      await setAdminArchived(item.snapshot, archived, userId);
+      setMessage(archived ? "보관 처리했습니다." : "비공개 초안으로 복원했습니다.");
+      await load();
+    } catch (error) {
+      if (error instanceof AdminConflict) await load();
+      setLoadError(error instanceof AdminConflict ? error.message : "보관 상태를 변경하지 못했습니다. Firestore 권한과 연결을 확인해 주세요.");
     }
-    setLoadError("");
-    try {
-      const batch = writeBatch(db);
-      batch.update(doc(db, config.name, item.id), {
-        [publicField]: false,
-        archivedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-        createdBy: deleteField(),
-        updatedBy: deleteField(),
-        archivedBy: deleteField(),
-      });
-      batch.set(doc(db, "internalMetadata", config.name, "documents", item.id), { archivedBy: userId, updatedBy: userId }, { merge: true });
-      await batch.commit();
-      setMessage("보관 처리했습니다.");
-      await load();
-    } catch { setLoadError("보관 처리하지 못했습니다. Firestore 권한과 문서 필드를 확인해 주세요."); }
-  }
-
-  async function restore(item: DocumentRecord) {
-    if (!db) return;
-    setLoadError("");
-    try {
-      const batch = writeBatch(db);
-      batch.update(doc(db, config.name, item.id), {
-        [publicField]: false,
-        archivedAt: deleteField(),
-        updatedAt: serverTimestamp(),
-        createdBy: deleteField(),
-        updatedBy: deleteField(),
-        archivedBy: deleteField(),
-      });
-      batch.set(doc(db, "internalMetadata", config.name, "documents", item.id), { archivedBy: deleteField(), updatedBy: userId }, { merge: true });
-      await batch.commit();
-      setMessage("비공개 초안으로 복원했습니다.");
-      await load();
-    } catch { setLoadError("복원하지 못했습니다. Firestore 권한과 문서 필드를 확인해 주세요."); }
   }
 
   async function setCurrent(item: DocumentRecord) {
@@ -243,18 +221,13 @@ function CollectionEditor({ config, userId, dirty, onDirtyChange }: { config: Ad
     }
     setLoadError("");
     try {
-      const batch = writeBatch(db);
-      batch.set(doc(db, "generations", "current"), {
-        generationId: item.id,
-        label: String(item.label || item.id),
-        published: true,
-        updatedAt: serverTimestamp(),
-      });
-      batch.set(doc(db, "internalMetadata", "generations", "documents", "current"), { updatedBy: userId }, { merge: true });
-      await batch.commit();
+      await setAdminCurrent(item.snapshot, currentGeneration?.snapshot ?? null, userId);
       setMessage("현재 기수를 변경했습니다.");
       await load();
-    } catch { setLoadError("현재 기수를 변경하지 못했습니다. Firestore 권한을 확인해 주세요."); }
+    } catch (error) {
+      if (error instanceof AdminConflict) await load();
+      setLoadError(error instanceof AdminConflict ? error.message : "현재 기수를 변경하지 못했습니다. Firestore 권한을 확인해 주세요.");
+    }
   }
 
   return (
@@ -265,9 +238,9 @@ function CollectionEditor({ config, userId, dirty, onDirtyChange }: { config: Ad
       </header>
       <p className="sr-live" aria-live="polite">{message}</p>
       {loadError && <p className="form-error" role="alert">{loadError}</p>}
-      {config.name === "generations" && <p className="admin-current-generation">현재 기수: <strong>{String(currentGeneration?.label || currentGeneration?.generationId || "미설정")}</strong></p>}
+      {config.name === "generations" && <p className="admin-current-generation">현재 기수: <strong>{String(currentCatalog?.label || currentGeneration?.label || currentGeneration?.generationId || "미설정")}</strong></p>}
       {editing !== undefined ? (
-        <EditorForm config={config} document={editing} userId={userId} onCancel={closeEditor} onSaved={async () => { closeEditor(); setMessage("저장했습니다."); await load(); }} onDirtyChange={onDirtyChange} />
+        <EditorForm key={formSession} config={config} document={editing} userId={userId} onCancel={closeEditor} onRefresh={load} onSaved={async () => { closeEditor(); setMessage("저장했습니다."); await load(); }} onDirtyChange={onDirtyChange} />
       ) : loading ? (
         <p aria-busy="true">목록을 불러오는 중입니다.</p>
       ) : editableDocuments.length ? (
@@ -277,7 +250,7 @@ function CollectionEditor({ config, userId, dirty, onDirtyChange }: { config: Ad
             <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th>콘텐츠</th><th>ID</th><th>공개</th><th>상태</th><th>수정일</th><th><span className="visually-hidden">작업</span></th></tr></thead><tbody>
               {filteredDocuments.map((item) => {
                 const archived = Boolean(item.archivedAt);
-                return <tr key={item.id}><td><strong>{String(item[config.titleField] || "제목 없음")}</strong></td><td><code>{item.id}</code></td><td>{archived ? "보관됨" : item[publicField] === true ? "공개" : "비공개"}</td><td>{String(item.status || item.role || (config.name === "generations" && currentGeneration?.generationId === item.id ? "현재" : "-"))}</td><td>{formatTimestamp(item.updatedAt)}</td><td>{config.name === "generations" && !archived && item.published === true && currentGeneration?.generationId !== item.id && <button onClick={() => setCurrent(item)}>현재로 설정</button>}<button data-focus-key={`edit:${item.id}`} onClick={() => openEditor(item, `edit:${item.id}`)}>수정</button>{archived ? <button onClick={() => restore(item)}>복원</button> : <button className="danger" onClick={() => archive(item)}>보관</button>}</td></tr>;
+                return <tr key={item.id}><td><strong>{String(item[config.titleField] || "제목 없음")}</strong></td><td><code>{item.id}</code></td><td>{archived ? "보관됨" : item[publicField] === true ? "공개" : "비공개"}</td><td>{String(item.status || item.role || (config.name === "generations" && currentGeneration?.generationId === item.id ? "현재" : "-"))}</td><td>{formatTimestamp(item.updatedAt)}</td><td>{config.name === "generations" && !archived && item.published === true && currentGeneration?.generationId !== item.id && <button onClick={() => setCurrent(item)}>현재로 설정</button>}{archived ? <button onClick={() => changeArchive(item, false)}>복원</button> : <><button data-focus-key={`edit:${item.id}`} onClick={() => openEditor(item, `edit:${item.id}`)}>수정</button><button className="danger" onClick={() => changeArchive(item, true)}>보관</button></>}</td></tr>;
               })}
             </tbody></table></div>
           ) : <div className="empty-state"><h2>검색 결과가 없습니다</h2><p>다른 검색어를 입력해 주세요.</p></div>}
@@ -289,7 +262,7 @@ function CollectionEditor({ config, userId, dirty, onDirtyChange }: { config: Ad
   );
 }
 
-function EditorForm({ config, document, userId, onCancel, onSaved, onDirtyChange }: { config: AdminCollection; document: DocumentRecord | null; userId: string; onCancel: () => void; onSaved: () => void; onDirtyChange: (dirty: boolean) => void }) {
+function EditorForm({ config, document, userId, onCancel, onRefresh, onSaved, onDirtyChange }: { config: AdminCollection; document: DocumentRecord | null; userId: string; onCancel: () => void; onRefresh: () => Promise<void>; onSaved: () => void; onDirtyChange: (dirty: boolean) => void }) {
   const { generation, error: generationError, loading: generationLoading } = useCurrentGeneration();
   const isCurrentRecruitment = config.name === "recruitment" && !document;
   const isSlugDocument = !document && (config.name === "activities" || config.name === "projects");
@@ -307,6 +280,7 @@ function EditorForm({ config, document, userId, onCancel, onSaved, onDirtyChange
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [errorField, setErrorField] = useState("");
+  const [conflict, setConflict] = useState(false);
   const dirty = JSON.stringify(values) !== JSON.stringify(initialValues) || customDocumentId !== (document?.id || "");
   const availableGenerationOptions = useMemo(() => {
     const options = new Map(generationOptions.map((item) => [item.id, item.label]));
@@ -379,6 +353,10 @@ function EditorForm({ config, document, userId, onCancel, onSaved, onDirtyChange
       fail(`${isSlugDocument ? "Slug" : "문서 ID"}는 영문, 숫자, 한글, 하이픈(-), 밑줄(_)만 사용할 수 있습니다.`, isSlugDocument ? "slug" : "documentId");
       return;
     }
+    if (needsDocumentId && documentId === "current") {
+      fail("current는 현재 기수 안내에 사용하는 예약 ID입니다.", "documentId");
+      return;
+    }
     setError("");
     setErrorField("");
     const startDate = String(values.startDate || "");
@@ -428,6 +406,7 @@ function EditorForm({ config, document, userId, onCancel, onSaved, onDirtyChange
     const payload: Record<string, unknown> = Object.fromEntries(config.fields
       .map((field) => [field.name, serializeValue(field, values[field.name])])
       .filter((entry) => entry[1] !== undefined));
+    if (document?.order !== undefined && values.order === "") payload.order = deleteField();
     try {
       if (config.name === "members" && typeof payload.github === "string" && payload.github) {
         const github = normalizeGithub(payload.github);
@@ -440,27 +419,18 @@ function EditorForm({ config, document, userId, onCancel, onSaved, onDirtyChange
       }
       const target = document ? doc(db, config.name, document.id) : documentId.trim()
         ? doc(db, config.name, documentId.trim()) : doc(collection(db, config.name));
-      if (!document && documentId.trim()) {
-        if ((await getDoc(target)).exists()) {
-          fail("같은 문서 ID가 이미 있습니다. 기존 항목을 수정해 주세요.", isSlugDocument ? "slug" : "documentId");
-          setSaving(false);
-          return;
-        }
-      }
-      const batch = writeBatch(db);
-      batch.set(target, document ? {
-        ...payload, updatedAt: serverTimestamp(), createdBy: deleteField(), updatedBy: deleteField(), archivedBy: deleteField(),
-        ...(config.name === "members" ? { consentConfirmedAt: deleteField(), consentConfirmedBy: deleteField() } : {}),
-      } : { ...payload, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: Boolean(document) });
-      batch.set(doc(db, "internalMetadata", config.name, "documents", target.id), {
-        updatedBy: userId,
-        ...(!document ? { createdBy: userId } : {}),
-        ...(config.name === "members" && payload.visible === true && !document?.visible
-          ? { consentConfirmedAt: serverTimestamp(), consentConfirmedBy: userId } : {}),
-      }, { merge: true });
-      await batch.commit();
+      await saveAdminDocument(target, document?.snapshot ?? null, payload, userId);
       onSaved();
-    } catch { fail("저장하지 못했습니다. 입력값과 Firestore 권한을 확인해 주세요."); setSaving(false); }
+    } catch (reason) {
+      if (reason instanceof AdminConflict) {
+        setConflict(true);
+        fail(reason.message, !document ? isSlugDocument ? "slug" : "documentId" : "");
+        await onRefresh();
+      } else {
+        fail("저장하지 못했습니다. 입력값과 Firestore 권한을 확인해 주세요.");
+      }
+      setSaving(false);
+    }
   }
 
   const recruitmentPreview = config.name === "recruitment"
@@ -478,6 +448,7 @@ function EditorForm({ config, document, userId, onCancel, onSaved, onDirtyChange
       </div>
       {recruitmentPreview && <p className="admin-status-preview">공개 화면 예상 상태: <strong>{recruitmentPreview === "open" ? "모집 중" : recruitmentPreview === "upcoming" ? "모집 예정" : "모집 종료"}</strong> (한국시간 날짜 기준)</p>}
       {error && <p className="form-error" id="admin-form-error" role="alert" tabIndex={-1} ref={errorRef}>{error}</p>}
+      {conflict && <button type="button" className="button button-secondary" onClick={cancel}>목록에서 최신 항목 확인</button>}
       <div className="form-actions"><button type="button" className="button button-secondary" onClick={cancel}>취소</button><button className="button" disabled={saving || generationUnavailable}>{saving ? "저장 중…" : generationLoading && isCurrentRecruitment ? "기수 확인 중…" : "변경사항 저장"}</button></div>
     </form>
   );

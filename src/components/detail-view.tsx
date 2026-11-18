@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { usePublicDocument } from "@/lib/use-public-data";
-import type { Activity, Generation, Project } from "@/types/content";
+import { GenerationName } from "@/components/generation-name";
+import type { Activity, Project } from "@/types/content";
 import { trackAnalyticsEvent } from "@/lib/analytics-consent";
 
 export function ActivityDetail() {
-  const slug = useSearchParams().get("slug");
-  const { item: activity, loading, error, retry } = usePublicDocument<Activity>("activities", slug);
+  const params = useSearchParams();
+  const id = params.get("id");
+  const { item: activity, loading, error, retry } = usePublicDocument<Activity>("activities", id ?? params.get("slug"), id === null);
   useDocumentTitle(activity?.title);
 
   if (loading) return <DetailLoading />;
@@ -39,8 +41,9 @@ export function ActivityDetail() {
 }
 
 export function ProjectDetail() {
-  const slug = useSearchParams().get("slug");
-  const { item: project, loading, error, retry } = usePublicDocument<Project>("projects", slug);
+  const params = useSearchParams();
+  const id = params.get("id");
+  const { item: project, loading, error, retry } = usePublicDocument<Project>("projects", id ?? params.get("slug"), id === null);
   useDocumentTitle(project?.title);
 
   if (loading) return <DetailLoading />;
@@ -70,11 +73,6 @@ export function ProjectDetail() {
       </div>
     </article>
   );
-}
-
-function GenerationName({ id }: { id?: string }) {
-  const { item } = usePublicDocument<Generation>("generations", id || null);
-  return item?.label || id || "미정";
 }
 
 function LinkList({ links }: { links: string[] }) {
