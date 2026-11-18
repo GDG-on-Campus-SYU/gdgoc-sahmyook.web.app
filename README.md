@@ -20,6 +20,7 @@ Firebase 값이 없을 때도 공개 페이지는 검증되지 않은 활동이�
 2. `.env.local`에 `.env.example`의 공개 Web App 설정을 입력합니다.
 3. 최초 운영자는 Google 로그인 후 확인한 UID로 `users/{uid}` 문서를 만들고 `role`을 `admin` 또는 `editor`로 설정합니다.
 4. `firebase deploy --only firestore:rules`로 보안 규칙을 배포합니다.
+   홈의 활동·프로젝트 정렬 색인이 변경되면 색인 관리 권한이 있는 계정으로 `firebase deploy --only firestore:indexes --project gdgoc-sahmyook --non-interactive`를 실행합니다. 색인 생성 중에도 홈은 공개 목록을 읽어 같은 순서로 표시합니다.
 
 GA4는 Google Analytics의 웹 데이터 스트림에서 측정 ID(`G-...`)를 확인해 로컬 `NEXT_PUBLIC_GA_MEASUREMENT_ID`와 GitHub Repository Variable에 설정합니다. 사이트는 공개 페이지의 최초 진입과 클라이언트 페이지 이동을 직접 `page_view`로 보냅니다. 중복 집계를 막기 위해 웹 데이터 스트림의 향상된 측정에서 자동 페이지 조회수 측정을 켜지 말고, DebugView에서 페이지당 한 번씩 기록되는지 확인합니다.
 
