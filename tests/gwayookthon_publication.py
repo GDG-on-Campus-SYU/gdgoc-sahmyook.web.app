@@ -87,6 +87,19 @@ class ClosureTest(unittest.TestCase):
                 self.close()
         self.assertEqual(self.transaction.mock_calls, [])
 
+    def test_refresh_only_the_original_closed_record(self):
+        self.existing.update(publisher["INITIAL_CLOSED_RECORD"])
+        self.assertEqual(self.close(), "closed")
+        self.assertEqual(self.transaction.mock_calls, [
+            call.update(self.activity, {**publisher["CLOSED_RECORD"], "updatedAt": "timestamp"}),
+            call.update(self.audit, {"updatedBy": "editor"}),
+        ])
+        self.transaction.reset_mock()
+        self.existing["content"] += "\n운영자가 추가한 현장 기록"
+        with self.assertRaises(RuntimeError):
+            self.close()
+        self.assertEqual(self.transaction.mock_calls, [])
+
 
 if __name__ == "__main__":
     unittest.main()
