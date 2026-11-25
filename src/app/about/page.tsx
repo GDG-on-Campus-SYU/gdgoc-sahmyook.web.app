@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { pageMetadata } from "@/lib/page-metadata";
 import { BrandLogo, PageHero } from "@/components/site-shell";
 
@@ -20,7 +21,10 @@ export default function AboutPage() {
           <h2>학교 안의 배움을<br />더 넓은 세상과 연결합니다.</h2>
           <p>Google Developer Groups on Campus는 학생들이 직접 기술을 배우고 실습하며 개발자 커뮤니티와 연결되는 프로그램입니다.</p>
           <p>GDGOC Sahmyook은 삼육대학교의 독립적인 챕터입니다. 이곳에서는 챕터가 공개한 활동, 프로젝트와 사람들의 기록을 소개합니다.</p>
-          <p><a className="text-link" href="https://gdg.community.dev/gdg-on-campus-sahmyook-university-seoul-south-korea/" target="_blank" rel="noopener noreferrer">공식 챕터에서 행사 확인하기 ↗</a></p>
+          <div className="button-row">
+            <Link className="button" href="/activities/">챕터 활동 보기 <span aria-hidden="true">→</span></Link>
+            <a className="button button-secondary" href="https://gdg.community.dev/gdg-on-campus-sahmyook-university-seoul-south-korea/" target="_blank" rel="noopener noreferrer">공식 챕터 행사 <span aria-hidden="true">↗</span></a>
+          </div>
           <div className="program-logo"><BrandLogo /></div>
         </div>
       </section>

@@ -21,8 +21,8 @@ export default function Home() {
           <h1><span>Connect.</span><span>Learn. Build.</span><span>Together.</span></h1>
           <p className="hero-lede">삼육대학교에서 기술을 배우는 것을 넘어, 함께 만들고 경험을 나누는 학생 개발자 커뮤니티입니다.</p>
           <div className="button-row">
-            <Link className="button" href="/about">Explore GDGOC <span aria-hidden="true">→</span></Link>
-            <Link className="button button-secondary" href="/recruit">Join us <span aria-hidden="true">↗</span></Link>
+            <Link className="button" href="/activities/">활동 보기 <span aria-hidden="true">→</span></Link>
+            <Link className="button button-secondary" href="/recruit/">모집 안내 <span aria-hidden="true">→</span></Link>
           </div>
         </div>
         <div className="hero-map" aria-hidden="true">
@@ -37,6 +37,13 @@ export default function Home() {
             <path className="path-yellow" d="M120 495 C300 495 245 300 550 300" />
             <path className="path-green" d="M40 410 C200 410 260 470 470 470" />
           </svg>
+        </div>
+      </section>
+
+      <section className="section surface-section">
+        <div className="container">
+          <SectionHeading eyebrow="Featured activities" title="챕터 활동 기록" action={{ href: "/activities", label: "모든 활동" }} />
+          <ActivityCollection compact />
         </div>
       </section>
 
@@ -63,15 +70,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section surface-section">
-        <div className="container">
-          <SectionHeading eyebrow="Featured activities" title="우리가 함께한 장면들" description="실제 활동과 배움의 과정을 기록합니다." action={{ href: "/activities", label: "모든 활동" }} />
-          <ActivityCollection compact />
-        </div>
-      </section>
-
-      <section className="section container">
-        <SectionHeading eyebrow="Projects" title="아이디어를 세상에 꺼내놓는 일" description="문제에서 시작해 작동하는 결과물에 도달한 프로젝트를 소개합니다." action={{ href: "/projects", label: "프로젝트 보기" }} />
+      <section className="section container home-projects">
         <ProjectCollection compact />
       </section>
 

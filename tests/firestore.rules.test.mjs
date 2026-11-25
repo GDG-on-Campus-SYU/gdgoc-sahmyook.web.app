@@ -129,6 +129,20 @@ test("invalid fields, enums and date ranges are rejected", async () => {
   }));
 });
 
+test("recruitment supports an optional Korean cutoff tied to its end date", async () => {
+  await seed();
+  const editor = environment.authenticatedContext("editor-user").firestore();
+  const target = doc(editor, "recruitment", "cutoff");
+  const posting = { title: "모집", description: "설명", status: "open", applyUrl: "https://example.test/apply", published: true };
+  await assertSucceeds(setDoc(target, posting));
+  await assertFails(updateDoc(target, { endTime: "18:00" }));
+  await assertSucceeds(updateDoc(target, { endDate: "2026-09-12", endTime: "18:00" }));
+  for (const endTime of ["24:00", "18:60", "6:00", 18]) await assertFails(updateDoc(target, { endTime }));
+  await assertFails(updateDoc(target, { endDate: "" }));
+  await assertSucceeds(updateDoc(target, { endTime: "" }));
+  await assertSucceeds(updateDoc(target, { endDate: "", endTime: "" }));
+});
+
 test("a public member needs private consent metadata in the same batch", async () => {
   await seed();
   const editor = environment.authenticatedContext("editor-user").firestore();

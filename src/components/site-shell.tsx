@@ -9,7 +9,7 @@ const navigation = [
   ["Activities", "/activities"],
   ["Projects", "/projects"],
   ["People", "/people"],
-  ["Recruit", "/recruit"],
+  ["모집 안내", "/recruit"],
 ] as const;
 
 export function BrandLogo({ priority = false }: { priority?: boolean }) {

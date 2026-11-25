@@ -2,11 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 
 export function MobileNav({ items }: { items: ReadonlyArray<readonly [string, string]> }) {
   const menu = useRef<HTMLDetailsElement>(null);
   const pathname = usePathname();
+
+  useEffect(() => {
+    const details = menu.current;
+    if (!details) return;
+    details.open = false;
+    function closeOutside(event: Event) {
+      if (details?.open && event.target instanceof Node && !details.contains(event.target)) details.open = false;
+    }
+    document.addEventListener("pointerdown", closeOutside);
+    document.addEventListener("focusin", closeOutside);
+    return () => {
+      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("focusin", closeOutside);
+    };
+  }, [pathname]);
 
   return (
     <details

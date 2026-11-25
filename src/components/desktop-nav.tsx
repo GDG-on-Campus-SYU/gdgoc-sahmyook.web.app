@@ -9,8 +9,7 @@ export function DesktopNav({ items }: { items: ReadonlyArray<readonly [string, s
 
   return (
     <nav className="desktop-nav" aria-label="주요 메뉴">
-      {items.map(([label, href]) => <Link key={href} href={href} aria-current={active(href) ? "page" : undefined}>{label}</Link>)}
-      <Link href="/recruit" className="button button-small">Join us <span aria-hidden="true">↗</span></Link>
+      {items.map(([label, href]) => <Link key={href} href={href} className={href === "/recruit" ? "button button-small" : undefined} aria-current={active(href) ? "page" : undefined}>{label}</Link>)}
     </nav>
   );
 }

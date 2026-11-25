@@ -4,23 +4,26 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { usePublicDocument } from "@/lib/use-public-data";
+import { archiveListHref, readArchiveFilters } from "@/lib/public-archive";
 import { GenerationName } from "@/components/generation-name";
 import type { Activity, Project } from "@/types/content";
 import { trackAnalyticsEvent } from "@/lib/analytics-consent";
+import { readLinkTitles } from "@/lib/activity-links";
 
 export function ActivityDetail() {
   const params = useSearchParams();
+  const listHref = archiveListHref("activities", readArchiveFilters("activities", params));
   const id = params.get("id");
   const { item: activity, loading, error, retry } = usePublicDocument<Activity>("activities", id ?? params.get("slug"), id === null);
   useDocumentTitle(activity?.title);
 
   if (loading) return <DetailLoading />;
-  if (error) return <DetailError href="/activities" label="활동 목록" onRetry={retry} />;
-  if (!activity) return <DetailMissing href="/activities" label="활동 목록" />;
+  if (error) return <DetailError href={listHref} label="활동 목록" onRetry={retry} />;
+  if (!activity) return <DetailMissing href={listHref} label="활동 목록" />;
 
   return (
     <article className="detail-page container">
-      <Link className="back-link" href="/activities">← 활동 목록</Link>
+      <Link className="back-link" href={listHref}>← 활동 목록</Link>
       <header className="detail-header">
         <div className="card-meta"><span>{activity.category}</span><span>{activity.status}</span></div>
         <h1>{activity.title}</h1>
@@ -34,7 +37,7 @@ export function ActivityDetail() {
       </header>
       <div className="detail-content">
         <p>{activity.content || activity.summary}</p>
-        {Boolean(activity.links?.length) && <LinkList links={activity.links!} />}
+        {Boolean(activity.links?.length) && <LinkList links={activity.links!} linkTitles={activity.linkTitles} />}
       </div>
     </article>
   );
@@ -42,13 +45,14 @@ export function ActivityDetail() {
 
 export function ProjectDetail() {
   const params = useSearchParams();
+  const listHref = archiveListHref("projects", readArchiveFilters("projects", params));
   const id = params.get("id");
   const { item: project, loading, error, retry } = usePublicDocument<Project>("projects", id ?? params.get("slug"), id === null);
   useDocumentTitle(project?.title);
 
   if (loading) return <DetailLoading />;
-  if (error) return <DetailError href="/projects" label="프로젝트 목록" onRetry={retry} />;
-  if (!project) return <DetailMissing href="/projects" label="프로젝트 목록" />;
+  if (error) return <DetailError href={listHref} label="프로젝트 목록" onRetry={retry} />;
+  if (!project) return <DetailMissing href={listHref} label="프로젝트 목록" />;
 
   const sections = [
     ["Description", project.description], ["Problem", project.problem], ["Solution", project.solution], ["Result", project.result],
@@ -56,7 +60,7 @@ export function ProjectDetail() {
 
   return (
     <article className="detail-page container">
-      <Link className="back-link" href="/projects">← 프로젝트 목록</Link>
+      <Link className="back-link" href={listHref}>← 프로젝트 목록</Link>
       <header className="detail-header">
         <p className="eyebrow">Project · <GenerationName id={project.generation} /></p>
         <h1>{project.title}</h1>
@@ -75,8 +79,11 @@ export function ProjectDetail() {
   );
 }
 
-function LinkList({ links }: { links: string[] }) {
-  return <ul className="detail-links">{links.map((link) => safeHref(link) && <li key={link}><a href={link} target="_blank" rel="noopener noreferrer">{new URL(link).hostname} 관련 링크 ↗</a></li>)}</ul>;
+function LinkList({ links, linkTitles }: { links: string[]; linkTitles?: Activity["linkTitles"] }) {
+  const titles = readLinkTitles(linkTitles);
+  return <ul className="detail-links">{links.map((link, index) => safeHref(link) &&
+    <li key={`${index}-${link}`}><a href={link} target="_blank" rel="noopener noreferrer">{titles.get(link) || link.replace(/^https?:\/\//i, "")} <span aria-hidden="true">↗</span></a></li>
+  )}</ul>;
 }
 
 function DetailLoading() {

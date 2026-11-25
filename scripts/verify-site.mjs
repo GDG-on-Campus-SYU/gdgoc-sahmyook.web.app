@@ -37,7 +37,7 @@ try {
     await ready(`main ${card}, main .empty-state`);
     const first = page.locator(card).first();
     if (card === ".person-card" || !(await first.count())) continue;
-    const title = await first.locator("h2").innerText();
+    const title = await first.getByRole("heading").innerText();
     await first.locator('a[href*="/detail/"]').click();
     await page.getByRole("heading", { level: 1, name: title, exact: true }).waitFor();
   }
@@ -46,8 +46,13 @@ try {
   assert.equal(await page.locator("main h1").count(), 1);
   await open("/admin/");
   await page.getByRole("button", { name: "Google 계정으로 로그인" }).waitFor();
+  const missing = await page.goto(new URL("/missing-site-verification-page/", base).href);
+  assert.equal(missing?.status(), 404);
+  await page.getByRole("heading", { name: "페이지를 찾을 수 없습니다" }).waitFor();
+  await page.getByRole("main").getByRole("link", { name: "활동 목록" }).click();
+  await ready("main .activity-card, main .empty-state");
   assert.deepEqual(errors, []);
-  console.log("Verified release assets, public collections, available detail links, recruitment and the admin login screen");
+  console.log("Verified release assets, collections, detail links, recruitment, admin login and 404 recovery");
 } finally {
   await browser.close();
 }
