@@ -23,11 +23,28 @@ ANNOUNCEMENT = {
     "content": "2026년 11월 24일 화요일 오후 6시 30분부터 10시까지 서울과학기술대학교에서 만납니다.\n"
                "장소는 서울 노원구 공릉로 232입니다. 자세한 행사 안내는 아래 공식 행사 페이지에서 확인해 주세요.",
 }
-CLOSED_RECORD = {
+INITIAL_CLOSED_RECORD = {
     "status": "종료",
     "summary": "GDGoC 서울과학기술대학교와 삼육대학교의 연합 네트워킹 세션입니다.",
     "content": "공식 행사 페이지에 안내된 일정은 2026년 11월 24일 화요일 오후 6시 30분부터 10시까지였으며, "
                "장소는 서울과학기술대학교(서울 노원구 공릉로 232)였습니다.",
+}
+CLOSED_RECORD = {
+    "status": "종료",
+    "summary": "Gemini로 대학생의 생활비를 어떻게 줄일 수 있을까요? "
+               "서울과기대와 삼육대 학생들이 80분 동안 서비스를 기획하고, 3분 발표로 서로의 아이디어를 나눴습니다.",
+    "content": (
+        "서울과학기술대학교에 모인 두 학교 학생들은 먼저 서로를 소개하고 팀 이름을 정했습니다. "
+        "이어진 QR 빙고에서는 빙고판에 적힌 특징에 맞는 사람을 찾아 말을 걸고, 서로의 QR 코드를 찍어 칸을 채웠습니다.\n\n"
+        "이날의 과제는 “Gemini를 활용해 대학생의 지갑을 지켜라!”였습니다. "
+        "운영진이 든 예시는 ‘AI 자취생 셰프’였습니다. 냉장고에 남은 식재료를 바탕으로 저렴하게 차릴 수 있는 식단을 추천하는 아이디어입니다. "
+        "각 팀은 식비나 매달 빠져나가는 구독료처럼 대학생이 겪는 지출 문제를 자유롭게 골랐습니다.\n\n"
+        "기획에 주어진 시간은 80분이었습니다. 팀별로 누구의 어떤 지출을 줄일지 정하고, Gemini를 활용한 서비스의 핵심 기능과 "
+        "작동 방식을 발표 자료에 담는 것이 과제였습니다. Gemini로 화면 예시나 프로토타입을 만들어 아이디어를 보여 주면 가산점을 받을 수 있었습니다.\n\n"
+        "발표 시간은 팀당 3분이었습니다. 현장 참가자들은 각 팀의 발표 자료를 살펴보고 다른 팀에 한 표를 주는 방식으로 평가에 참여했습니다. "
+        "평가 기준은 세 가지였습니다. 새로운 관점을 제시했는지, 사용자에게 실제로 도움이 되는지, 다양한 상황에서 쓸 수 있는지를 함께 살폈습니다.\n\n"
+        "행사 일정 · 2026년 11월 24일(화) 18:30–22:00 · 서울과학기술대학교"
+    ),
 }
 
 
@@ -83,8 +100,8 @@ def close_activity(transaction, activity, audit, actor, updated_at, now):
     current_text = {key: existing.get(key) for key in ANNOUNCEMENT}
     if current_text == CLOSED_RECORD:
         return "already closed"
-    if current_text != ANNOUNCEMENT:
-        raise RuntimeError("The announcement was edited. Review its current text before closing.")
+    if current_text not in (ANNOUNCEMENT, INITIAL_CLOSED_RECORD):
+        raise RuntimeError("The activity was edited. Review its current text before updating the archive.")
     transaction.update(activity, {**CLOSED_RECORD, "updatedAt": updated_at})
     transaction.update(audit, {"updatedBy": actor})
     return "closed"
