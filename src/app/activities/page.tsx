@@ -5,6 +5,7 @@ import { PageHero } from "@/components/site-shell";
 export const metadata = pageMetadata("Activities", "GDGOC Sahmyook의 스터디, 세션, 네트워킹과 협업 활동을 확인하세요.", "/activities/");
 
 const chapterEvents = [
+  { date: "2026.11.03", title: "GDG on Campus Sahmyook University - Session", href: "https://gdg.community.dev/events/details/google-gdg-on-campus-sahmyook-university-seoul-south-korea-presents-gdg-on-campus-sahmyook-university-session-1/" },
   { date: "2026.08.10", title: "새 운영진 커피챗 및 네트워킹 세션", href: "https://gdg.community.dev/events/details/google-gdg-on-campus-sahmyook-university-seoul-south-korea-presents-sae-unyeongjin-keopicaes-mic-neteuweoking-sesyeon/" },
   { date: "2026.05.25", title: "Build with AI 2026 : 두유톤", href: "https://gdg.community.dev/events/details/google-gdg-on-campus-sahmyook-university-seoul-south-korea-presents-build-with-ai-2026-duyutongdgoc-sahmyook/" },
   { date: "2026.02.06", title: "2026 GDGoC 연합해커톤: ONE WAVE", href: "https://gdg.community.dev/events/details/google-gdg-on-campus-kangnam-university-yongin-south-korea-presents-2026-gdgoc-yeonhabhaekeoton-one-wave/" },

@@ -10,12 +10,12 @@
     "dev": "next dev",
     "build": "next build && node scripts/normalize-export-segments.mjs",
     "build:hosting": "node scripts/check-hosting-config.mjs && pnpm run build",
-    "start": "pnpm dlx firebase-tools@15.30.2 emulators:start --only hosting --project demo-gdgoc-preview",
+    "start": "pnpm dlx firebase-tools@15.37.0 emulators:start --only hosting --project demo-gdgoc-preview",
     "verify:site": "node scripts/verify-site.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:unit": "node --experimental-strip-types --test tests/recruitment-status.test.mjs tests/member-presentation.test.mjs tests/analytics-consent.test.mjs tests/migrate-public-metadata.test.mjs tests/public-archive.test.mjs tests/hosting-config.test.mjs tests/export-segments.test.mjs",
-    "test:rules": "pnpm dlx firebase-tools@15.30.2 emulators:exec --only firestore --project demo-gdgoc-rules \"node --experimental-strip-types --test --test-concurrency=1 tests/firestore.rules.test.mjs tests/public-archive.emulator.mjs\""
+    "test:rules": "pnpm dlx firebase-tools@15.37.0 emulators:exec --only firestore --project demo-gdgoc-rules \"node --experimental-strip-types --test --test-concurrency=1 tests/firestore.rules.test.mjs tests/public-archive.emulator.mjs\""
   },
   "dependencies": {
     "firebase": "^13.4.0",

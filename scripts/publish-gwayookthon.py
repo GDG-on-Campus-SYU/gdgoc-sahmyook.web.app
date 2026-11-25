@@ -1,5 +1,6 @@
-"""Create the approved activity and its private audit record in one transaction."""
+"""Publish or close the approved activity together with its private audit record."""
 
+import argparse
 import json
 import re
 from datetime import datetime, timezone
@@ -15,6 +16,19 @@ SOURCE = (
 START = datetime.fromisoformat("2026-11-24T09:30:00+00:00")
 END = datetime.fromisoformat("2026-11-24T13:00:00+00:00")
 PLACE = "서울과학기술대학교"
+EVENT_FIELDS = {"title": TITLE, "slug": SLUG, "startDate": "2026-11-24", "endDate": "2026-11-24"}
+ANNOUNCEMENT = {
+    "status": "예정",
+    "summary": "GDGoC 서울과학기술대학교와 삼육대학교가 함께 여는 네트워킹 세션입니다.",
+    "content": "2026년 11월 24일 화요일 오후 6시 30분부터 10시까지 서울과학기술대학교에서 만납니다.\n"
+               "장소는 서울 노원구 공릉로 232입니다. 자세한 행사 안내는 아래 공식 행사 페이지에서 확인해 주세요.",
+}
+CLOSED_RECORD = {
+    "status": "종료",
+    "summary": "GDGoC 서울과학기술대학교와 삼육대학교의 연합 네트워킹 세션입니다.",
+    "content": "공식 행사 페이지에 안내된 일정은 2026년 11월 24일 화요일 오후 6시 30분부터 10시까지였으며, "
+               "장소는 서울과학기술대학교(서울 노원구 공릉로 232)였습니다.",
+}
 
 
 def verify_source():
@@ -57,7 +71,26 @@ def current_generation(db, transaction):
     return generation
 
 
-def publish():
+def close_activity(transaction, activity, audit, actor, updated_at, now):
+    if now < END:
+        raise RuntimeError("The official event has not ended yet.")
+    existing = activity.get(transaction=transaction).to_dict() or {}
+    history = audit.get(transaction=transaction).to_dict() or {}
+    if (existing.get("published") is not True or "archivedAt" in existing or existing.get("links") != [SOURCE]
+            or any(existing.get(key) != value for key, value in EVENT_FIELDS.items())
+            or not history.get("createdBy") or not history.get("updatedBy")):
+        raise RuntimeError("The published activity or its audit record does not match this event.")
+    current_text = {key: existing.get(key) for key in ANNOUNCEMENT}
+    if current_text == CLOSED_RECORD:
+        return "already closed"
+    if current_text != ANNOUNCEMENT:
+        raise RuntimeError("The announcement was edited. Review its current text before closing.")
+    transaction.update(activity, {**CLOSED_RECORD, "updatedAt": updated_at})
+    transaction.update(audit, {"updatedBy": actor})
+    return "closed"
+
+
+def publish(action="publish"):
     import google.auth
     from google.cloud import firestore
 
@@ -76,11 +109,7 @@ def publish():
     def create(transaction):
         generation = current_generation(db, transaction)
         payload = {
-            "title": TITLE, "slug": SLUG, "category": "Session", "status": "예정",
-            "summary": "GDGoC 서울과학기술대학교와 삼육대학교가 함께 여는 네트워킹 세션입니다.",
-            "content": "2026년 11월 24일 화요일 오후 6시 30분부터 10시까지 서울과학기술대학교에서 만납니다.\n"
-                       "장소는 서울 노원구 공릉로 232입니다. 자세한 행사 안내는 아래 공식 행사 페이지에서 확인해 주세요.",
-            "startDate": "2026-11-24", "endDate": "2026-11-24", "generation": generation,
+            **EVENT_FIELDS, **ANNOUNCEMENT, "category": "Session", "generation": generation,
             "host": "GDGoC 서울과학기술대학교 · GDGoC 삼육대학교", "links": [SOURCE], "order": 0, "published": True,
         }
         existing = activity.get(transaction=transaction).to_dict()
@@ -96,12 +125,18 @@ def publish():
         transaction.create(audit, {"createdBy": actor, "updatedBy": actor})
         return "created"
 
-    result = create(db.transaction())
+    if action == "close":
+        result = firestore.transactional(close_activity)(
+            db.transaction(), activity, audit, actor, firestore.SERVER_TIMESTAMP, datetime.now(timezone.utc))
+        expected_text = CLOSED_RECORD
+    else:
+        result = create(db.transaction())
+        expected_text = ANNOUNCEMENT
     url = f"https://firestore.googleapis.com/v1/projects/{PROJECT}/databases/(default)/documents/activities/{SLUG}"
     with urlopen(url, timeout=20) as response:
         fields = json.load(response)["fields"]
-    if (fields.get("published", {}).get("booleanValue") is not True or fields["title"]["stringValue"] != TITLE
-            or fields["slug"]["stringValue"] != SLUG or fields["startDate"]["stringValue"] != "2026-11-24"
+    if (fields.get("published", {}).get("booleanValue") is not True
+            or any(fields.get(key, {}).get("stringValue") != value for key, value in {**EVENT_FIELDS, **expected_text}.items())
             or fields["links"]["arrayValue"]["values"] != [{"stringValue": SOURCE}]
             or {"archivedAt", "createdBy", "updatedBy"}.intersection(fields)):
         raise RuntimeError("Public verification failed after the transaction. Inspect the existing activity before retrying.")
@@ -109,5 +144,8 @@ def publish():
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("action", nargs="?", choices=("publish", "close"), default="publish")
+    args = parser.parse_args()
     verify_source()
-    publish()
+    publish(args.action)

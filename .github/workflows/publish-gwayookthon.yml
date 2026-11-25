@@ -1,6 +1,16 @@
-name: Publish the 2026 Gwayookthon activity
+name: Publish or close the 2026 Gwayookthon activity
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Action for the existing 2026 Gwayookthon archive
+        type: choice
+        required: true
+        default: publish
+        options:
+          - publish
+          - close
 
 permissions:
   contents: read
@@ -24,5 +34,7 @@ jobs:
       - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-      - name: Verify the official event and publish once
-        run: '"$RUNNER_TEMP/gwayookthon/bin/python" scripts/publish-gwayookthon.py'
+      - name: Verify the official event and apply the selected action
+        env:
+          EVENT_ACTION: ${{ inputs.action }}
+        run: '"$RUNNER_TEMP/gwayookthon/bin/python" scripts/publish-gwayookthon.py "$EVENT_ACTION"'
