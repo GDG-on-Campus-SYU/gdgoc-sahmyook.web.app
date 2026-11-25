@@ -12,6 +12,7 @@ export type Activity = {
   participants?: string;
   host?: string;
   links?: string[];
+  linkTitles?: { url: string; title: string }[];
   published?: boolean;
   order?: number;
 };
@@ -64,6 +65,7 @@ export type Recruitment = {
   description: string;
   startDate?: string;
   endDate?: string;
+  endTime?: string;
   applyUrl?: string;
   status: "upcoming" | "open" | "closed";
   process?: string[];

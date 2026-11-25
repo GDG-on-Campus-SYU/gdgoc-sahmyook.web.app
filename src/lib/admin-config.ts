@@ -1,7 +1,7 @@
 export type AdminField = {
   name: string;
   label: string;
-  kind?: "text" | "url" | "textarea" | "date" | "number" | "checkbox" | "select" | "list" | "faq" | "generation-list" | "generation-history" | "multi-select";
+  kind?: "text" | "url" | "textarea" | "date" | "time" | "number" | "checkbox" | "select" | "list" | "faq" | "generation-list" | "generation-history" | "multi-select";
   required?: boolean;
   options?: string[];
 };
@@ -29,7 +29,7 @@ export const adminCollections: AdminCollection[] = [
       { name: "generation", label: "기수", kind: "select", required: true },
       { name: "host", label: "담당자" },
       { name: "participants", label: "참여 인원" },
-      { name: "links", label: "관련 링크 (한 줄에 하나)", kind: "list" },
+      { name: "links", label: "관련 링크 (한 줄에 URL 또는 자료 이름 | URL)", kind: "list" },
       { name: "order", label: "표시 순서", kind: "number" },
       { name: "published", label: "공개", kind: "checkbox" },
     ],
@@ -76,6 +76,7 @@ export const adminCollections: AdminCollection[] = [
       { name: "description", label: "안내", kind: "textarea", required: true },
       { name: "startDate", label: "시작일", kind: "date" },
       { name: "endDate", label: "종료일", kind: "date" },
+      { name: "endTime", label: "마감 시각 (한국시간)", kind: "time" },
       { name: "applyUrl", label: "지원 URL", kind: "url" },
       { name: "status", label: "모집 상태", kind: "select", required: true, options: ["upcoming", "open", "closed"] },
       { name: "process", label: "모집 절차 (한 줄에 한 단계)", kind: "list" },

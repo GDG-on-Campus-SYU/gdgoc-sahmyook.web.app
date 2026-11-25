@@ -2,43 +2,42 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { createContext, Suspense, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { loadCurrentGeneration } from "@/lib/use-current-generation";
-import { effectiveRecruitmentStatus } from "@/lib/recruitment-status";
+import { effectiveRecruitmentStatus, recruitmentStatusLabels } from "@/lib/recruitment-status";
+import { useRecruitmentNow } from "@/lib/use-recruitment-now";
 import { trackAnalyticsEvent } from "@/lib/analytics-consent";
 import { memberRoleForGeneration } from "@/lib/member-presentation";
 import { usePublicCollection } from "@/lib/use-public-data";
-import { archiveHref, compareActivities, compareProjects, generationOptions } from "@/lib/public-archive";
+import { activityCategories, allArchiveItems, archiveHref, compareActivities, compareProjects, generationOptions, readArchiveFilters, type ArchiveFilters, type ArchiveName } from "@/lib/public-archive";
 import { GenerationName } from "@/components/generation-name";
-import { PageHero } from "@/components/site-shell";
+import { PageHero, SectionHeading } from "@/components/site-shell";
 import type { Activity, Generation, Member, Project, Recruitment } from "@/types/content";
 
-const categories = ["All", "Study", "Session", "Project", "Networking", "Hackathon", "Collaboration"];
-const recruitmentStatuses = {
-  upcoming: ["모집 예정", "모집 시작 전입니다"],
-  open: ["모집 중", "지원하기"],
-  closed: ["모집 종료", "다음 모집을 기다려 주세요"],
-} as const;
-let recruitmentRequest: Promise<Recruitment | undefined> | null = null;
+type PublicRecruitment = Recruitment & { generationLabel: string };
+let recruitmentRequest: Promise<PublicRecruitment | undefined> | null = null;
 
 function loadRecruitment() {
   if (!db) return Promise.resolve(undefined);
   const activeDb = db;
   if (!recruitmentRequest) {
     recruitmentRequest = loadCurrentGeneration()
-      .then(({ generationId }) => getDoc(doc(activeDb, "recruitment", generationId)))
-      .then((snapshot) => snapshot.exists() && snapshot.data().published === true
-        ? { id: snapshot.id, ...snapshot.data() } as Recruitment
-        : undefined)
+      .then(async ({ generationId, label }) => {
+        const snapshot = await getDoc(doc(activeDb, "recruitment", generationId));
+        return snapshot.exists() && snapshot.data().published === true
+          ? { ...snapshot.data(), id: snapshot.id, generationLabel: label } as PublicRecruitment
+          : undefined;
+      })
       .finally(() => { recruitmentRequest = null; });
   }
   return recruitmentRequest;
 }
 
 function useRecruitment() {
-  const [recruitment, setRecruitment] = useState<Recruitment>();
+  const [recruitment, setRecruitment] = useState<PublicRecruitment>();
   const [loading, setLoading] = useState(Boolean(db));
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -63,11 +62,48 @@ export function PeopleHero() {
   return <PageHero eyebrow="People" title="커뮤니티를 만드는 사람들" description="프로필과 외부 링크는 본인이 공개에 동의한 경우에만 표시합니다." />;
 }
 
-export function ActivityCollection({ compact = false }: { compact?: boolean }) {
+type CollectionProps = {
+  compact?: boolean;
+  filters?: ArchiveFilters;
+  onFilter?: (changes: Partial<ArchiveFilters>) => void;
+};
+
+export function FilterableArchive({ name }: { name: ArchiveName }) {
+  const loadingText = name === "activities" ? "활동을 불러오는 중입니다." : "프로젝트를 불러오는 중입니다.";
+  return <Suspense fallback={<CollectionLoading text={loadingText} />}><ArchiveWithFilters name={name} /></Suspense>;
+}
+
+function ArchiveWithFilters({ name }: { name: ArchiveName }) {
+  const filters = readArchiveFilters(name, useSearchParams());
+  function changeFilters(changes: Partial<ArchiveFilters>) {
+    const url = new URL(window.location.href);
+    for (const [key, value] of Object.entries(changes)) {
+      if (value === "All") url.searchParams.delete(key);
+      else url.searchParams.set(key, value);
+    }
+    window.history.replaceState(null, "", url);
+  }
+  return name === "activities"
+    ? <ActivityCollection filters={filters} onFilter={changeFilters} />
+    : <ProjectCollection filters={filters} onFilter={changeFilters} />;
+}
+
+function FilterSummary({ label, count, filters, onFilter }: { label: string; count: number; filters: ArchiveFilters; onFilter: NonNullable<CollectionProps["onFilter"]> }) {
+  const result = useRef<HTMLSpanElement>(null);
+  function resetFilters() {
+    onFilter(allArchiveItems);
+    result.current?.focus();
+  }
+  return <div className="filter-summary">
+    <span ref={result} role="status" tabIndex={-1}>{label} {count}건</span>
+    {(filters.generation !== "All" || filters.category !== "All") && <button type="button" onClick={resetFilters}>필터 초기화</button>}
+  </div>;
+}
+
+export function ActivityCollection({ compact = false, filters = allArchiveItems, onFilter }: CollectionProps) {
   const { items, cached, loading, error, retry } = usePublicCollection<Activity>("activities", "published", true, compact ? 3 : 0);
   const { items: generationItems } = usePublicCollection<Generation>("generations", "published", !compact);
-  const [category, setCategory] = useState("All");
-  const [generation, setGeneration] = useState("All");
+  const { category, generation } = filters;
   const generations = useMemo(() => generationOptions(generationItems, items.map((item) => item.generation)), [items, generationItems]);
   const sorted = useMemo(() => [...items].sort(compareActivities), [items]);
   const filtered = useMemo(() => sorted.filter((item) =>
@@ -80,28 +116,28 @@ export function ActivityCollection({ compact = false }: { compact?: boolean }) {
   return (
     <div>
       {cached && <CachedNotice onRetry={retry} />}
-      {!compact && (
+      {onFilter && (
         <>
-          <GenerationSelect label="활동 기수" value={generation} options={generations} onChange={setGeneration} />
-          <label className="generation-filter mobile-filter"><span>활동 카테고리</span><select value={category} onChange={(event) => setCategory(event.target.value)}>{categories.map((item) => <option key={item} value={item}>{item === "All" ? "전체" : item}</option>)}</select></label>
+          <GenerationSelect label="활동 기수" value={generation} options={generations} onChange={(value) => onFilter({ generation: value })} />
+          <label className="generation-filter mobile-filter"><span>활동 카테고리</span><select value={category} onChange={(event) => onFilter({ category: event.target.value })}>{activityCategories.map((item) => <option key={item} value={item}>{item === "All" ? "전체" : item}</option>)}</select></label>
           <div className="filter-row desktop-filter" role="group" aria-label="활동 카테고리 필터">
-            {categories.map((item) => <button key={item} className={category === item ? "active" : ""} aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>)}
+            {activityCategories.map((item) => <button key={item} className={category === item ? "active" : ""} aria-pressed={category === item} onClick={() => onFilter({ category: item })}>{item === "All" ? "전체" : item}</button>)}
           </div>
+          <FilterSummary label="활동" count={filtered.length} filters={filters} onFilter={onFilter} />
         </>
       )}
       {visibleItems.length ? (
         <div className="activity-grid">
           {visibleItems.map((activity) => {
-            const Heading = compact ? "h3" : "h2";
             return (
               <article className="activity-card" key={activity.id}>
                 <div className="card-body">
                   <div className="card-meta"><span>{activity.category}</span><span>{activity.status}</span></div>
-                  <Heading>{activity.title}</Heading>
+                  <h3>{activity.title}</h3>
                   <p>{activity.summary}</p>
                   <div className="card-footer">
                     <span>{activity.startDate || (compact ? <GenerationName id={activity.generation} /> : generations.find(([id]) => id === activity.generation)?.[1])}</span>
-                    <Link href={archiveHref("activities", activity)} aria-label={`${activity.title} 자세히 보기`}>자세히 보기 <span aria-hidden="true">→</span></Link>
+                    <Link href={archiveHref("activities", activity, filters)} aria-label={`${activity.title} 자세히 보기`}>자세히 보기 <span aria-hidden="true">→</span></Link>
                   </div>
                 </div>
               </article>
@@ -109,16 +145,16 @@ export function ActivityCollection({ compact = false }: { compact?: boolean }) {
           })}
         </div>
       ) : (
-        <EmptyState headingLevel={compact ? "h3" : "h2"} title={category === "All" && generation === "All" ? "아직 등록된 활동이 없습니다" : "조건에 맞는 활동이 없습니다"} text={category === "All" && generation === "All" ? "새 활동 기록이 공개되면 이곳에 표시됩니다." : "다른 기수나 카테고리를 선택해 보세요."} />
+        <EmptyState headingLevel="h3" title={category === "All" && generation === "All" ? "아직 등록된 활동이 없습니다" : "조건에 맞는 활동이 없습니다"} text={category === "All" && generation === "All" ? "새 활동 기록이 공개되면 이곳에 표시됩니다." : "다른 기수나 카테고리를 선택해 보세요."} />
       )}
     </div>
   );
 }
 
-export function ProjectCollection({ compact = false }: { compact?: boolean }) {
+export function ProjectCollection({ compact = false, filters = allArchiveItems, onFilter }: CollectionProps) {
   const { items, cached, loading, error, retry } = usePublicCollection<Project>("projects", "published", true, compact ? 2 : 0);
   const { items: generationItems } = usePublicCollection<Generation>("generations", "published", !compact);
-  const [generation, setGeneration] = useState("All");
+  const { generation } = filters;
   const generations = useMemo(() => generationOptions(generationItems, items.map((item) => item.generation)), [items, generationItems]);
   const sorted = useMemo(() => [...items].sort(compareProjects), [items]);
   const filtered = useMemo(() => sorted.filter((item) => generation === "All" || item.generation === generation), [generation, sorted]);
@@ -128,9 +164,21 @@ export function ProjectCollection({ compact = false }: { compact?: boolean }) {
   if (error) return <CollectionError text="프로젝트를 불러오지 못했습니다." onRetry={retry} />;
   return (
     <div>
+      {compact && (visibleItems.length > 0
+        ? <SectionHeading eyebrow="Projects" title="아이디어를 세상에 꺼내놓는 일" action={{ href: "/projects/", label: "모든 프로젝트" }} />
+        : <h2>프로젝트</h2>)}
       {cached && <CachedNotice onRetry={retry} />}
-      {!compact && <GenerationSelect label="프로젝트 기수" value={generation} options={generations} onChange={setGeneration} />}
-      {!visibleItems.length ? <EmptyState headingLevel={compact ? "h3" : "h2"} title={generation === "All" ? "아직 공개된 프로젝트가 없습니다" : "이 기수의 공개 프로젝트가 없습니다"} text={generation === "All" ? "프로젝트 기록이 공개되면 이곳에 표시됩니다." : "다른 기수를 선택해 보세요."} /> : <div className="project-list">
+      {onFilter && <>
+        <GenerationSelect label="프로젝트 기수" value={generation} options={generations} onChange={(value) => onFilter({ generation: value })} />
+        <FilterSummary label="프로젝트" count={filtered.length} filters={filters} onFilter={onFilter} />
+      </>}
+      {!visibleItems.length && (compact
+        ? <p className="compact-empty" role="status">아직 공개된 프로젝트가 없습니다.</p>
+        : <div className="empty-state">
+            <h2>{generation === "All" ? "아직 공개된 프로젝트가 없습니다" : "이 기수의 공개 프로젝트가 없습니다"}</h2>
+            {generation === "All" ? <Link className="text-link" href="/activities/">챕터 활동 보기 <span aria-hidden="true">→</span></Link> : <p>다른 기수를 선택해 보세요.</p>}
+          </div>)}
+      {visibleItems.length > 0 && <div className="project-list">
       {visibleItems.map((project) => {
         const Heading = compact ? "h3" : "h2";
         return (
@@ -140,7 +188,7 @@ export function ProjectCollection({ compact = false }: { compact?: boolean }) {
               <Heading>{project.title}</Heading>
               <p>{project.summary}</p>
               {Boolean(project.techStack?.length) && <ul className="tag-list" aria-label="사용 기술">{project.techStack?.map((tech) => <li key={tech}>{tech}</li>)}</ul>}
-              <Link href={archiveHref("projects", project)} className="text-link" aria-label={`${project.title} 프로젝트 보기`}>프로젝트 보기 <span aria-hidden="true">→</span></Link>
+              <Link href={archiveHref("projects", project, filters)} className="text-link" aria-label={`${project.title} 프로젝트 보기`}>프로젝트 보기 <span aria-hidden="true">→</span></Link>
             </div>
           </article>
         );
@@ -151,8 +199,8 @@ export function ProjectCollection({ compact = false }: { compact?: boolean }) {
 }
 
 function GenerationSelect({ label, value, options, onChange, className = "" }: { label: string; value: string; options: [string, string][]; onChange: (value: string) => void; className?: string }) {
-  if (!options.length) return null;
-  return <label className={`generation-filter ${className}`}><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}><option value="All">전체</option>{options.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>;
+  if (!options.length && value === "All") return null;
+  return <label className={`generation-filter ${className}`}><span>{label}</span><select value={value} onChange={(event) => onChange(event.target.value)}><option value="All">전체</option>{value !== "All" && !options.some(([id]) => id === value) && <option value={value}>{value}</option>}{options.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>;
 }
 
 export function PeopleCollection() {
@@ -227,60 +275,63 @@ function useRecruitmentState() {
 
 export function RecruitmentPanel({ compact = false }: { compact?: boolean }) {
   const { recruitment, loading, error, retry } = useRecruitmentState();
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 60_000);
-    return () => window.clearInterval(timer);
-  }, []);
+  const now = useRecruitmentNow(recruitment ? [recruitment] : []);
   const Heading = compact ? "h2" : "h1";
+  const detailsLink = compact ? <Link href="/recruit/" className="button button-secondary">모집 안내</Link> : null;
 
-  if (loading) return <div className={`recruitment-panel ${compact ? "compact" : ""}`} aria-busy="true"><div><Heading>모집 안내</Heading><p>모집 정보를 불러오는 중입니다.</p></div></div>;
-  if (error) return <div className={`recruitment-panel ${compact ? "compact" : ""}`} role="alert"><div><Heading>모집 안내</Heading><p>모집 정보를 불러오지 못했습니다.</p><button className="button" type="button" onClick={retry}>다시 시도</button></div></div>;
-  if (!recruitment) return <div className={`recruitment-panel ${compact ? "compact" : ""}`}><div><span className="status-badge status-closed">현재 모집 없음</span><Heading>다음 모집을 준비하고 있습니다</Heading><p>확정된 모집 일정과 지원 방법은 이 페이지에서 안내합니다.</p></div></div>;
+  if (loading) return <div className="recruitment-panel" aria-busy="true"><div><Heading>모집 안내</Heading><p>모집 정보를 불러오는 중입니다.</p></div>{detailsLink}</div>;
+  if (error) return <div className="recruitment-panel" role="alert"><div><Heading>모집 안내</Heading><p>모집 정보를 불러오지 못했습니다.</p><button className="button" type="button" onClick={retry}>다시 시도</button></div>{detailsLink}</div>;
+  if (!recruitment) return <div className="recruitment-panel"><div><span className="status-badge status-closed">현재 모집 없음</span><Heading>다음 모집을 준비하고 있습니다</Heading><p>일정이 확정되면 모집 안내에 게시합니다.</p></div>{detailsLink}</div>;
 
   const effectiveStatus = effectiveRecruitmentStatus(recruitment, now);
-  const status = recruitmentStatuses[effectiveStatus];
-  const date = formatDateRange(recruitment.startDate, recruitment.endDate);
+  const date = formatRecruitmentDates(recruitment);
   const applyUrl = safeHref(recruitment.applyUrl);
+  const canApply = effectiveStatus === "open" && Boolean(applyUrl);
   return (
-    <div className={`recruitment-panel ${compact ? "compact" : ""} ${effectiveStatus === "open" && applyUrl ? "is-open" : ""}`}>
+    <div className={`recruitment-panel${canApply ? " is-open" : ""}`}>
       <div>
-        <span className={`status-badge status-${effectiveStatus}`}>{status[0]}</span>
-        <p className="eyebrow">{recruitment.id}</p>
+        <span className={`status-badge status-${effectiveStatus}`}>{recruitmentStatusLabels[effectiveStatus]}</span>
+        <p className="eyebrow">{recruitment.generationLabel}</p>
         <Heading>{recruitment.title}</Heading>
         <p>{recruitment.description}</p>
         {date && <p className="recruitment-date">{date}</p>}
       </div>
-      {effectiveStatus === "open" && applyUrl
-        ? <a className="button button-light" href={applyUrl} target="_blank" rel="noopener noreferrer" onClick={() => trackAnalyticsEvent("recruit_apply_click")}>{status[1]} <span aria-hidden="true">↗</span></a>
-        : <span className="recruitment-unavailable">{effectiveStatus === "open" ? "지원 링크 준비 중" : status[1]}</span>}
+      {(compact || effectiveStatus === "open") && <div className="button-row">
+        {detailsLink}
+        {canApply && applyUrl && (
+          <a className="button button-light" href={applyUrl} target="_blank" rel="noopener noreferrer" onClick={(event) => {
+            if (effectiveRecruitmentStatus(recruitment) !== "open") event.preventDefault();
+            else trackAnalyticsEvent("recruit_apply_click");
+          }}>지원하기 <span aria-hidden="true">↗</span></a>
+        )}
+        {effectiveStatus === "open" && !applyUrl && <span className="recruitment-unavailable">지원 링크 준비 중</span>}
+      </div>}
     </div>
   );
 }
 
 export function RecruitmentDetails() {
-  const { recruitment, loading, error } = useRecruitmentState();
-  if (loading) return <CollectionLoading text="모집 절차를 불러오는 중입니다." />;
-  if (error) return <p>모집 정보를 다시 불러오면 절차와 FAQ를 확인할 수 있습니다.</p>;
-  if (!recruitment) return <EmptyState headingLevel="h3" title="공개된 모집 절차가 없습니다" text="모집이 확정되면 절차와 FAQ를 안내합니다." />;
-
+  const { recruitment } = useRecruitmentState();
+  if (!recruitment?.process?.length && !recruitment?.faq?.length) return null;
   return (
-    <>
-      {recruitment.process?.length
-        ? <ol className="process-list">{recruitment.process.map((step, index) => <li key={`${step}-${index}`}><span>{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong></li>)}</ol>
-        : <EmptyState headingLevel="h3" title="모집 절차가 아직 등록되지 않았습니다" text="확정된 절차만 안내합니다." />}
-      {recruitment.faq?.length ? <div className="faq-list">{recruitment.faq.map((item, index) => <details key={`${item.question}-${index}`}><summary>{item.question}<span aria-hidden="true">＋</span></summary><p>{item.answer}</p></details>)}</div> : null}
-    </>
+    <section className="section container">
+      {Boolean(recruitment.process?.length) && <>
+        <h2>지원부터 합류까지</h2>
+        <ol className="process-list">{recruitment.process?.map((step, index) => <li key={`${step}-${index}`}><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><strong>{step}</strong></li>)}</ol>
+      </>}
+      {Boolean(recruitment.faq?.length) && <div className="faq-list"><h2>자주 묻는 질문</h2>{recruitment.faq?.map((item, index) => <details key={`${item.question}-${index}`}><summary>{item.question}<span aria-hidden="true">＋</span></summary><p>{item.answer}</p></details>)}</div>}
+    </section>
   );
 }
 
 export function RecruitmentRoles() {
-  const { recruitment, loading, error } = useRecruitmentState();
-  if (loading) return <CollectionLoading text="모집 역할을 불러오는 중입니다." />;
-  if (error) return <p>모집 정보를 다시 불러오면 역할을 확인할 수 있습니다.</p>;
+  const { recruitment } = useRecruitmentState();
   const roles = recruitment?.roles?.filter((role) => role === "Member" || role === "Team Member") ?? [];
-  if (!roles.length) return <EmptyState headingLevel="h3" title="공개된 모집 역할이 없습니다" text="모집 역할이 확정되면 안내합니다." />;
-  return <div className="role-cards">{roles.map((role) => <article key={role}><span>{role.toUpperCase()}</span><h3>{role}</h3><p>{roleDescription(role)}</p></article>)}</div>;
+  if (!roles.length) return null;
+  return <section className="section surface-section"><div className="container">
+    <h2>모집 역할</h2>
+    <div className="role-cards">{roles.map((role) => <article key={role}><h3>{role}</h3><p>{roleDescription(role)}</p></article>)}</div>
+  </div></section>;
 }
 
 export function EmptyState({ title, text, headingLevel = "h2" }: { title: string; text: string; headingLevel?: "h2" | "h3" }) {
@@ -304,9 +355,11 @@ function memberGenerations(member: Member) {
   return member.activityGenerations?.filter(Boolean).length ? member.activityGenerations : member.generation ? [member.generation] : [];
 }
 
-function formatDateRange(start?: string, end?: string) {
-  if (start && end) return `${start} — ${end}`;
-  return start || end || "";
+function formatRecruitmentDates({ startDate, endDate, endTime }: Recruitment) {
+  const closing = endDate && `${endDate}${endTime ? ` ${endTime}` : ""}`;
+  if (startDate && closing) return `접수 기간 ${startDate} ~ ${closing} (한국시간)`;
+  if (closing) return `접수 마감 ${closing} (한국시간)`;
+  return startDate ? `접수 시작 ${startDate} (한국시간)` : "";
 }
 
 function safeHref(value?: string) {

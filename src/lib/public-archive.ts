@@ -64,8 +64,35 @@ export async function readPublicCollection<T>(db: Firestore, name: string, visib
   return rows;
 }
 
-export function archiveHref(name: "activities" | "projects", item: { id: string; slug: string }) {
-  const params = new URLSearchParams({ slug: item.slug });
+export type ArchiveName = "activities" | "projects";
+export type ArchiveFilters = { generation: string; category: string };
+export const allArchiveItems: ArchiveFilters = { generation: "All", category: "All" };
+export const activityCategories = ["All", "Study", "Session", "Project", "Networking", "Hackathon", "Collaboration"];
+
+export function readArchiveFilters(name: ArchiveName, params: Pick<URLSearchParams, "get">): ArchiveFilters {
+  const generation = params.get("generation");
+  const category = params.get("category");
+  return {
+    generation: validDocumentId(generation) ? generation : "All",
+    category: name === "activities" && category && activityCategories.includes(category) ? category : "All",
+  };
+}
+
+function filterParams(filters: ArchiveFilters) {
+  const params = new URLSearchParams();
+  if (filters.generation !== "All") params.set("generation", filters.generation);
+  if (filters.category !== "All") params.set("category", filters.category);
+  return params;
+}
+
+export function archiveListHref(name: ArchiveName, filters: ArchiveFilters) {
+  const query = filterParams(filters).toString();
+  return `/${name}/${query ? `?${query}` : ""}`;
+}
+
+export function archiveHref(name: ArchiveName, item: { id: string; slug: string }, filters = allArchiveItems) {
+  const params = filterParams(filters);
+  params.set("slug", item.slug);
   if (item.id !== item.slug) params.set("id", item.id);
   return `/${name}/detail/?${params}`;
 }
