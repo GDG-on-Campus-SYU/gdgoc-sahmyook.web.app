@@ -132,7 +132,7 @@ try {
   await env.withSecurityRulesDisabled((context) => setDoc(doc(context.firestore(), "users", uid), { role: "editor" }));
   await admin.reload();
   const menu = admin.getByRole("navigation", { name: "관리 메뉴" });
-  await menu.getByRole("button", { name: "People" }).click();
+  await menu.getByRole("button", { name: "구성원" }).click();
   const memberRow = admin.getByRole("row").filter({ hasText: "편집 검증 구성원" });
   await memberRow.getByRole("button", { name: "수정" }).click();
   const previousGeneration = admin.getByRole("checkbox", { name: "이전 기수" });
@@ -157,7 +157,7 @@ try {
     assert.deepEqual(saved.get("activityGenerations"), [generation]);
     assert.deepEqual(saved.get("generationHistory"), []);
   });
-  await menu.getByRole("button", { name: "Activities" }).click();
+  await menu.getByRole("button", { name: "활동" }).click();
   await admin.getByRole("button", { name: "새 활동 추가" }).click();
   await admin.locator("#field-title").fill(title);
   await admin.locator("#field-slug").fill(slug);
@@ -180,10 +180,11 @@ try {
       admin.getByRole("button", { name: "변경사항 저장" }).click(),
     ]);
     assert.equal(await admin.locator("#field-title").isEditable(), false);
-    for (const selector of ["닫기", "취소", "새 활동 추가", "로그아웃"]) {
+    for (const selector of ["닫기", "취소", "로그아웃"]) {
       assert.equal(await admin.getByRole("button", { name: selector, exact: true }).isEnabled(), false, selector);
     }
-    assert.equal(await menu.getByRole("button", { name: "Projects" }).isEnabled(), false);
+    assert.equal(await admin.getByRole("button", { name: "새 활동 추가" }).count(), 0);
+    assert.equal(await menu.getByRole("button", { name: "프로젝트" }).isEnabled(), false);
   } finally {
     gate.resolve();
   }
