@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GoogleAuthProvider, User, onAuthStateChanged, signInWithPopup, signOut } from "firebase/auth";
 import { collection, deleteField, doc, getDocFromServer, getDocs, getDocsFromServer, type DocumentSnapshot } from "firebase/firestore";
@@ -19,6 +20,25 @@ type GenerationHistoryItem = { generationId: string; role: string; position: str
 type FormValue = string | boolean | FaqItem[] | GenerationHistoryItem[] | string[];
 type FormValues = Record<string, FormValue>;
 type GenerationOption = { id: string; label: string; order?: number };
+const visibilityLabels = {
+  all: "전체",
+  published: "공개",
+  private: "비공개",
+  archived: "보관됨",
+} as const;
+type Visibility = Exclude<keyof typeof visibilityLabels, "all">;
+
+function contentVisibility(item: DocumentRecord, publicField: string): Visibility {
+  if (item.archivedAt) return "archived";
+  return item[publicField] === true ? "published" : "private";
+}
+
+function AdminBrand() {
+  return <div className="admin-brand">
+    <Image src="/brand/gdgoc-symbol-transparent.png" alt="" width={40} height={40} />
+    <div><strong>콘텐츠 관리</strong><span>GDGOC Sahmyook</span></div>
+  </div>;
+}
 
 export function AdminConsole() {
   const [user, setUser] = useState<User | null>(null);
@@ -72,11 +92,13 @@ function LoginState() {
 
   return (
     <section className="admin-gate">
-      <p className="eyebrow">Admin only</p>
-      <h1>콘텐츠 관리</h1>
-      <p>등록된 운영진 Google 계정으로 로그인해 주세요.</p>
-      {error && <p className="form-error" role="alert">{error}</p>}
-      <button className="button" onClick={login}>Google 계정으로 로그인</button>
+      <div className="admin-login-card">
+        <AdminBrand />
+        <h1>운영진 로그인</h1>
+        <p>등록된 운영진 Google 계정으로 로그인해 주세요.</p>
+        {error && <p className="form-error" role="alert">{error}</p>}
+        <button className="button" onClick={login}>Google 계정으로 로그인</button>
+      </div>
     </section>
   );
 }
@@ -132,13 +154,16 @@ function Editor({ user, role }: { user: User; role: string }) {
   return (
     <div className="admin-layout">
       <aside className="admin-sidebar">
-        <div><span>GDGOC Sahmyook</span><strong>Admin</strong></div>
+        <AdminBrand />
         <nav aria-label="관리 메뉴">
           {adminCollections.map((item) => (
             <button key={item.name} disabled={saving} className={active.name === item.name ? "active" : ""} aria-current={active.name === item.name ? "page" : undefined} onClick={() => item.name !== active.name && leave(() => setActive(item))}>{item.label}</button>
           ))}
         </nav>
-        <div className="admin-user"><span>{user.email}</span><small>{role}</small><button disabled={saving} onClick={() => leave(() => { if (auth) void signOut(auth); })}>로그아웃</button></div>
+        <div className="admin-user">
+          <a href="/" target="_blank" rel="noopener noreferrer">공개 사이트 <span aria-hidden="true">↗</span></a>
+          <div className="admin-account"><span>{user.email}</span><small>{role === "admin" ? "관리자" : "편집자"}</small><button disabled={saving} onClick={() => leave(() => { if (auth) void signOut(auth); })}>로그아웃</button></div>
+        </div>
       </aside>
       <div className="admin-main"><CollectionEditor key={active.name} config={active} userId={user.uid} dirty={dirty} onDirtyChange={setDirty} saving={saving} onSavingChange={setSaving} /></div>
     </div>
@@ -162,6 +187,7 @@ function CollectionEditor({ config, userId, dirty, onDirtyChange, saving, onSavi
   const [actionError, setActionError] = useState("");
   const [changing, setChanging] = useState(false);
   const [search, setSearch] = useState("");
+  const [visibility, setVisibility] = useState<keyof typeof visibilityLabels>("all");
   const [recruitmentGeneration, setRecruitmentGeneration] = useState("");
   const [editingGeneration, setEditingGeneration] = useState("");
   const publicField = config.name === "members" ? "visible" : "published";
@@ -175,9 +201,10 @@ function CollectionEditor({ config, userId, dirty, onDirtyChange, saving, onSavi
     const needle = search.trim().toLocaleLowerCase("ko");
     const editable = config.name === "generations" ? documents.filter((item) => item.id !== "current") : documents;
     return [...editable]
+      .filter((item) => visibility === "all" || contentVisibility(item, publicField) === visibility)
       .filter((item) => !needle || `${String(item[config.titleField] || "")} ${item.id}`.toLocaleLowerCase("ko").includes(needle))
       .sort((a, b) => String(a[config.titleField] || "").localeCompare(String(b[config.titleField] || ""), "ko"));
-  }, [config.name, config.titleField, documents, search]);
+  }, [config.name, config.titleField, documents, publicField, search, visibility]);
 
   function load() {
     setLoading(true);
@@ -266,15 +293,17 @@ function CollectionEditor({ config, userId, dirty, onDirtyChange, saving, onSavi
 
   return (
     <>
-      <header className="admin-heading">
-        <div><p className="eyebrow">Content manager</p><h1>{config.label}</h1></div>
-        <button className="button" data-focus-key="new" disabled={saving || changing || (config.name === "recruitment" && (loading || Boolean(loadError)))} onClick={() => {
+      <header className={`admin-heading${editing !== undefined ? " admin-heading-editing" : ""}`}>
+        <h1>{config.label}</h1>
+        {editing === undefined && <button className="button" data-focus-key="new" disabled={saving || changing || (config.name === "recruitment" && (loading || Boolean(loadError)))} onClick={() => {
           if (currentRecruitment?.archivedAt) void changeArchive(currentRecruitment, false);
           else openEditor(currentRecruitment ?? null, "new");
-        }}>{currentRecruitment ? currentRecruitment.archivedAt ? "현재 기수 모집 복원" : "현재 기수 모집 수정" : `새 ${config.singular} 추가`}</button>
+        }}>{currentRecruitment ? currentRecruitment.archivedAt ? "현재 기수 모집 복원" : "현재 기수 모집 수정" : <><span aria-hidden="true">＋</span>{`새 ${config.singular} 추가`}</>}</button>}
       </header>
-      <p className="sr-live" aria-live="polite">{saving ? "변경사항을 저장하는 중입니다." : message}</p>
-      {publicHref && <a className="text-link" href={publicHref} target="_blank" rel="noopener noreferrer">저장한 공개본 보기 ↗</a>}
+      <div className={`admin-feedback${saving || message ? "" : " visually-hidden"}`}>
+        <p role="status">{saving ? "변경사항을 저장하는 중입니다." : message}</p>
+        {publicHref && <a className="text-link" href={publicHref} target="_blank" rel="noopener noreferrer">저장한 공개본 보기 ↗</a>}
+      </div>
       {actionError && <p className="form-error" role="alert">{actionError}</p>}
       {loadError && <div className="form-error" role="alert"><p>{loadError}{loaded && " 마지막으로 불러온 목록을 표시합니다."}</p><button type="button" className="button button-secondary" disabled={saving} onClick={load}>목록 다시 시도</button></div>}
       {config.name === "generations" && loaded && <p className="admin-current-generation">현재 기수: <strong>{String(currentCatalog?.label || currentGeneration?.label || currentGeneration?.generationId || "미설정")}</strong></p>}
@@ -283,34 +312,45 @@ function CollectionEditor({ config, userId, dirty, onDirtyChange, saving, onSavi
       ) : loading ? (
         <p role="status" aria-busy="true">목록을 불러오는 중입니다.</p>
       ) : editableDocuments.length ? (
-        <>
-          <label className="admin-search"><span>목록 검색</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="제목 또는 문서 ID" /></label>
+        <section className="admin-inventory" aria-label={`${config.label} 목록`}>
+          <div className="admin-list-tools">
+            <div className="admin-filters" role="group" aria-label="공개 상태 필터">
+              {(Object.keys(visibilityLabels) as (keyof typeof visibilityLabels)[]).map((value) => <button
+                key={value}
+                type="button"
+                aria-pressed={visibility === value}
+                onClick={() => setVisibility(value)}
+              >{visibilityLabels[value]}</button>)}
+            </div>
+            <label className="admin-search"><span className="visually-hidden">목록 검색</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="제목 또는 문서 ID" /></label>
+          </div>
+          <p className="admin-result-count" role="status">{filteredDocuments.length}건</p>
           {filteredDocuments.length ? (
-            <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th className="admin-row-title">콘텐츠</th><th className="admin-row-id">ID</th><th className="admin-row-visibility">공개</th><th className="admin-row-status">상태</th><th className="admin-row-date">수정일</th><th className="admin-row-actions"><span className="visually-hidden">작업</span></th></tr></thead><tbody>
+            <div className="admin-table-wrap"><table className="admin-table"><thead><tr><th scope="col" className="admin-row-title">{config.name === "members" || config.name === "generations" ? "이름" : "제목"}</th><th scope="col" className="admin-row-visibility">공개 상태</th><th scope="col" className="admin-row-status">상태</th><th scope="col" className="admin-row-date">수정일</th><th scope="col" className="admin-row-actions"><span className="visually-hidden">작업</span></th></tr></thead><tbody>
               {filteredDocuments.map((item) => {
                 const archived = Boolean(item.archivedAt);
+                const visibility = contentVisibility(item, publicField);
                 const isCurrent = currentGeneration?.generationId === item.id;
                 const status = config.name === "recruitment" ? recruitmentStatusLabels[effectiveRecruitmentStatus(recruitmentSchedule(item), now)] : String(item.status || item.role || (isCurrent ? "현재" : "–"));
                 return <tr key={item.id}>
-                  <td className="admin-row-title"><strong>{String(item[config.titleField] || "제목 없음")}</strong></td>
-                  <td className="admin-row-id" data-label="ID"><code>{item.id}</code></td>
-                  <td className="admin-row-visibility" data-label="공개">{archived ? "보관됨" : item[publicField] === true ? "공개" : "비공개"}</td>
+                  <td className="admin-row-title"><strong>{String(item[config.titleField] || "제목 없음")}</strong><code>{item.id}</code></td>
+                  <td className="admin-row-visibility"><span className="admin-visibility" data-visibility={visibility}>{visibilityLabels[visibility]}</span></td>
                   <td className="admin-row-status" data-label="상태">{status}</td>
                   <td className="admin-row-date" data-label="수정일">{formatTimestamp(item.updatedAt)}</td>
                   <td className="admin-row-actions">
                     {config.name === "generations" && !archived && item.published === true && !isCurrent && <button disabled={changing} onClick={() => setCurrent(item)}>현재로 설정</button>}
                     {archived ? <button disabled={changing} onClick={() => changeArchive(item, false)}>복원</button> : <>
-                      <button disabled={changing} data-focus-key={`edit:${item.id}`} onClick={() => openEditor(item, `edit:${item.id}`)}>수정</button>
+                      <button className="admin-edit-row" disabled={changing} data-focus-key={`edit:${item.id}`} onClick={() => openEditor(item, `edit:${item.id}`)}>수정</button>
                       {isCurrent ? <small>보관하려면 다른 기수를 먼저 현재로 설정하세요.</small> : <button className="danger" disabled={changing} onClick={() => changeArchive(item, true)}>보관</button>}
                     </>}
                   </td>
                 </tr>;
               })}
             </tbody></table></div>
-          ) : <div className="empty-state"><h2>검색 결과가 없습니다</h2><p>다른 검색어를 입력해 주세요.</p></div>}
-        </>
+          ) : <div className="admin-empty"><h2>조건에 맞는 항목이 없습니다</h2><p>검색어나 공개 상태를 바꿔 보세요.</p></div>}
+        </section>
       ) : !loadError && loaded ? (
-        <div className="empty-state"><h2>등록된 {config.singular}이 없습니다</h2><p>첫 콘텐츠를 추가해 주세요.</p></div>
+        <div className="admin-empty"><h2>등록된 {config.singular}이 없습니다</h2><p>위의 추가 버튼으로 첫 항목을 등록할 수 있습니다.</p></div>
       ) : null}
     </>
   );
@@ -550,7 +590,7 @@ function EditorForm({ config, document, userId, recruitmentGeneration, isCurrent
   return (
     <form className="admin-form" onSubmit={save} ref={formRef} aria-busy={saving} aria-describedby={error ? "admin-form-error" : undefined}>
       <fieldset className="admin-form-controls" disabled={saving}>
-      <div className="form-heading"><div><p className="eyebrow">{document ? "Edit" : "New"}</p><h2>{document ? String(document[config.titleField]) : `새 ${config.singular}`}</h2></div><button type="button" onClick={cancel}>닫기</button></div>
+      <div className="form-heading"><h2>{document ? String(document[config.titleField]) : `새 ${config.singular}`}</h2><button className="button button-secondary" type="button" onClick={cancel}>닫기</button></div>
       {!document && <label className="field"><span>문서 ID <small>{isCurrentRecruitment ? "현재 기수 기준" : isSlugDocument ? "Slug에서 자동 생성" : needsDocumentId ? "고유한 기수 ID" : "비워두면 자동 생성"}</small></span><input value={documentId} onChange={(event) => { setCustomDocumentId(event.target.value); if (errorField === "documentId") { setError(""); setErrorField(""); } }} pattern={"[A-Za-z0-9가-힣_\\-]*"} readOnly={isCurrentRecruitment || isSlugDocument} required={isCurrentRecruitment || isSlugDocument || needsDocumentId} aria-invalid={errorField === "documentId" || undefined} aria-describedby={errorField === "documentId" ? "admin-form-error" : undefined} /></label>}
       {generationOptionsLoading && <p role="status">기수 목록을 불러오는 중입니다.</p>}
       {generationOptionsError && <div className="form-error" role="alert"><p>기수 목록을 불러오지 못했습니다. 입력한 내용은 유지됩니다.</p><button type="button" className="button button-secondary" onClick={() => {

@@ -8,9 +8,9 @@ export async function verifyAdminWorkflows({ admin, firestore, title, generation
   const row = (name) => admin.getByRole("row").filter({ has: admin.getByText(name, { exact: true }) });
   const edit = (name) => row(name).getByRole("button", { name: "수정", exact: true });
   const collections = [
-    ["Activities", title, "title"], ["Projects", "탐색 검증 프로젝트", "title"],
-    ["People", "편집 검증 구성원", "name"], ["Recruit", "검증 모집", "title"],
-    ["Generations", "검증 기수", "label"],
+    ["활동", title, "title"], ["프로젝트", "탐색 검증 프로젝트", "title"],
+    ["구성원", "편집 검증 구성원", "name"], ["모집", "검증 모집", "title"],
+    ["기수", "검증 기수", "label"],
   ];
 
   for (const width of [320, 390, 768, 1440]) {
@@ -26,8 +26,10 @@ export async function verifyAdminWorkflows({ admin, firestore, title, generation
       await trigger.click();
       await admin.waitForFunction((id) => document.activeElement?.id === id, `field-${field}`);
       assert.ok(await admin.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${collection} form overflow at ${width}px`);
+      const saveBounds = await button("변경사항 저장").boundingBox();
+      assert.ok(saveBounds && saveBounds.y >= 0 && saveBounds.y + saveBounds.height <= 844, `${collection} save at ${width}px`);
       if (width === 1440) {
-        if (collection === "Projects") {
+        if (collection === "프로젝트") {
           const commit = (url) => url.origin === firestore.origin && url.pathname.endsWith("documents:commit");
           const summary = admin.locator("#field-summary");
           const draft = "저장 실패 후 복구할 합성 소개";
@@ -48,7 +50,7 @@ export async function verifyAdminWorkflows({ admin, firestore, title, generation
         }
         await button("변경사항 저장").click();
         await admin.getByText("저장했습니다.", { exact: true }).waitFor();
-        if (collection === "Projects") {
+        if (collection === "프로젝트") {
           const href = await admin.getByRole("link", { name: /저장한 공개본 보기/ }).getAttribute("href");
           const url = new URL(href, admin.url());
           assert.equal(url.searchParams.get("id"), "legacy-browser-project");
@@ -61,21 +63,21 @@ export async function verifyAdminWorkflows({ admin, firestore, title, generation
     }
   }
 
-  await go("Generations");
+  await go("기수");
   assert.equal(await row("검증 기수").getByRole("button", { name: "보관" }).count(), 0);
   await edit("검증 기수").click();
   assert.equal(await admin.locator("#field-published").isDisabled(), true);
   await button("취소").click();
   await row("이전 기수").getByRole("button", { name: "현재로 설정" }).click();
   await row("이전 기수").getByText("현재", { exact: true }).waitFor();
-  await go("Recruit");
+  await go("모집");
   await button("새 모집 추가").click();
   assert.equal(await admin.locator(".admin-form input[readonly]").inputValue(), "previous");
   await button("취소").click();
-  await go("Generations");
+  await go("기수");
   await row("검증 기수").getByRole("button", { name: "현재로 설정" }).click();
   await row("검증 기수").getByText("현재", { exact: true }).waitFor();
-  await go("Recruit");
+  await go("모집");
   await button("현재 기수 모집 수정").click();
   assert.equal(await admin.locator("#field-title").inputValue(), "검증 모집");
   await button("취소").click();
@@ -91,7 +93,7 @@ export async function verifyAdminWorkflows({ admin, firestore, title, generation
   const context = admin.context();
   try {
     await context.setOffline(true);
-    await go("Projects");
+    await go("프로젝트");
     const listRetry = button("목록 다시 시도");
     await listRetry.waitFor();
     assert.equal(await admin.getByRole("heading", { name: /등록된.*없습니다/ }).count(), 0);
@@ -112,8 +114,14 @@ export async function verifyAdminWorkflows({ admin, firestore, title, generation
   } finally {
     await context.setOffline(false);
   }
-  await go("Activities");
+  await go("활동");
   await edit(title).waitFor();
   assert.equal(await admin.getByRole("searchbox").inputValue(), "");
+  const filter = admin.getByRole("group", { name: "공개 상태 필터" });
+  await filter.getByRole("button", { name: "비공개", exact: true }).click();
+  await admin.getByRole("heading", { name: "조건에 맞는 항목이 없습니다" }).waitFor();
+  await filter.getByRole("button", { name: "공개", exact: true }).click();
+  await edit(title).waitFor();
+  await filter.getByRole("button", { name: "전체", exact: true }).click();
   console.log("Passed 20 responsive admin list/form checks, focus recovery, recruitment and generation actions, list and option retries");
 }

@@ -16,7 +16,7 @@ export type AdminCollection = {
 
 export const adminCollections: AdminCollection[] = [
   {
-    name: "activities", label: "Activities", singular: "활동", titleField: "title",
+    name: "activities", label: "활동", singular: "활동", titleField: "title",
     fields: [
       { name: "title", label: "활동명", required: true },
       { name: "slug", label: "Slug", required: true },
@@ -35,15 +35,15 @@ export const adminCollections: AdminCollection[] = [
     ],
   },
   {
-    name: "projects", label: "Projects", singular: "프로젝트", titleField: "title",
+    name: "projects", label: "프로젝트", singular: "프로젝트", titleField: "title",
     fields: [
       { name: "title", label: "프로젝트명", required: true },
       { name: "slug", label: "Slug", required: true },
       { name: "summary", label: "한 줄 소개", kind: "textarea", required: true },
       { name: "description", label: "상세 설명", kind: "textarea" },
-      { name: "problem", label: "Problem", kind: "textarea" },
-      { name: "solution", label: "Solution", kind: "textarea" },
-      { name: "result", label: "Result", kind: "textarea" },
+      { name: "problem", label: "해결하려던 문제", kind: "textarea" },
+      { name: "solution", label: "해결 방법", kind: "textarea" },
+      { name: "result", label: "결과", kind: "textarea" },
       { name: "members", label: "참여 구성원 (한 줄에 한 명)", kind: "list" },
       { name: "techStack", label: "기술 스택 (한 줄에 하나)", kind: "list" },
       { name: "github", label: "GitHub URL", kind: "url" },
@@ -54,7 +54,7 @@ export const adminCollections: AdminCollection[] = [
     ],
   },
   {
-    name: "members", label: "People", singular: "구성원", titleField: "name",
+    name: "members", label: "구성원", singular: "구성원", titleField: "name",
     fields: [
       { name: "name", label: "이름", required: true },
       { name: "role", label: "역할", kind: "select", required: true, options: ["Organizer", "Team Member", "Member"] },
@@ -70,7 +70,7 @@ export const adminCollections: AdminCollection[] = [
     ],
   },
   {
-    name: "recruitment", label: "Recruit", singular: "모집", titleField: "title",
+    name: "recruitment", label: "모집", singular: "모집", titleField: "title",
     fields: [
       { name: "title", label: "제목", required: true },
       { name: "description", label: "안내", kind: "textarea", required: true },
@@ -86,7 +86,7 @@ export const adminCollections: AdminCollection[] = [
     ],
   },
   {
-    name: "generations", label: "Generations", singular: "기수", titleField: "label",
+    name: "generations", label: "기수", singular: "기수", titleField: "label",
     fields: [
       { name: "label", label: "표시 이름", required: true },
       { name: "order", label: "표시 순서", kind: "number" },
