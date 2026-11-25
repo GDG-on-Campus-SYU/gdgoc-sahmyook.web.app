@@ -39,7 +39,7 @@ export function SiteFooter() {
           <p>삼육대학교에서 함께 배우고, 만들고, 경험을 나누는 학생 개발자 커뮤니티.</p>
         </div>
         <div className="footer-links">
-          <strong>Explore</strong>
+          <strong>사이트 메뉴</strong>
           {navigation.map(([label, href]) => (
             <Link key={href} href={href}>
               {label}
@@ -47,7 +47,7 @@ export function SiteFooter() {
           ))}
         </div>
         <div className="footer-links">
-          <strong>Community</strong>
+          <strong>커뮤니티</strong>
           <TrackedLink href="https://gdg.community.dev/gdg-on-campus-sahmyook-university-seoul-south-korea/" event="chapter_visit_click" external>공식 챕터 페이지 ↗</TrackedLink>
           <TrackedLink href="https://github.com/orgs/GDG-on-Campus-SYU/" event="github_click" external>GitHub ↗</TrackedLink>
           <TrackedLink href="mailto:dscsahmyook@gmail.com" event="contact_click">문의 이메일 ↗</TrackedLink>
@@ -77,12 +77,10 @@ export function PageHero({ eyebrow, title, description }: { eyebrow: string; tit
 }
 
 export function SectionHeading({
-  eyebrow,
   title,
   description,
   action,
 }: {
-  eyebrow: string;
   title: string;
   description?: string;
   action?: { href: string; label: string };
@@ -90,7 +88,6 @@ export function SectionHeading({
   return (
     <div className="section-heading">
       <div>
-        <p className="eyebrow">{eyebrow}</p>
         <h2>{title}</h2>
         {description && <p>{description}</p>}
       </div>

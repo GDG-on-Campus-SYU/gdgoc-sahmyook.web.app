@@ -17,49 +17,45 @@ export default function Home() {
     <>
       <section className="hero container">
         <div className="hero-copy">
-          <p className="eyebrow">Google Developer Groups · On Campus Sahmyook</p>
-          <h1><span>Connect.</span><span>Learn. Build.</span><span>Together.</span></h1>
-          <p className="hero-lede">삼육대학교에서 기술을 배우는 것을 넘어, 함께 만들고 경험을 나누는 학생 개발자 커뮤니티입니다.</p>
+          <p className="eyebrow">GDG on Campus · Sahmyook</p>
+          <h1>함께 배우고,<br /><span>함께 만듭니다.</span></h1>
+          <p className="hero-lede">기술을 배우고, 프로젝트를 만들고, 경험을 나누는 삼육대학교 학생 개발자 커뮤니티입니다.</p>
           <div className="button-row">
             <Link className="button" href="/activities/">활동 보기 <span aria-hidden="true">→</span></Link>
             <Link className="button button-secondary" href="/recruit/">모집 안내 <span aria-hidden="true">→</span></Link>
           </div>
         </div>
         <div className="hero-map" aria-hidden="true">
-          <span className="map-label label-a">LEARN</span>
-          <span className="map-label label-b">BUILD</span>
-          <span className="map-label label-c">SHARE</span>
-          <span className="map-label label-d">CONNECT</span>
-          <i className="node node-a" /><i className="node node-b" /><i className="node node-c" /><i className="node node-d" />
-          <svg viewBox="0 0 600 560" role="presentation">
-            <path className="path-blue" d="M40 410 C160 410 130 135 285 135" />
-            <path className="path-red" d="M285 135 C425 135 395 300 550 300" />
-            <path className="path-yellow" d="M120 495 C300 495 245 300 550 300" />
-            <path className="path-green" d="M40 410 C200 410 260 470 470 470" />
+          <svg viewBox="0 0 540 300" role="presentation">
+            <path className="path-blue" d="M85 200 C180 200 148 78 254 78" />
+            <path className="path-red" d="M254 78 C340 78 320 155 450 155" />
+            <path className="path-yellow" d="M85 200 C155 200 175 245 351 245" />
+            <path className="path-green" d="M351 245 C429 245 395 155 450 155" />
+            <circle className="path-yellow" cx="85" cy="200" r="11" />
+            <circle className="path-blue" cx="254" cy="78" r="11" />
+            <circle className="path-red" cx="450" cy="155" r="11" />
+            <circle className="path-green" cx="351" cy="245" r="11" />
+            <text x="85" y="173">Connect</text>
+            <text x="254" y="51">Learn</text>
+            <text x="450" y="128">Build</text>
+            <text x="351" y="218">Share</text>
           </svg>
         </div>
       </section>
 
       <section className="section surface-section">
         <div className="container">
-          <SectionHeading eyebrow="Featured activities" title="챕터 활동 기록" action={{ href: "/activities", label: "모든 활동" }} />
+          <SectionHeading title="최근 활동" action={{ href: "/activities/", label: "모든 활동" }} />
           <ActivityCollection compact />
         </div>
       </section>
 
-      <section className="section about-intro">
-        <div className="container intro-grid">
-          <p className="eyebrow">About GDGOC</p>
-          <div>
-            <h2>혼자 배우는 기술을<br />함께 성장하는 경험으로.</h2>
-            <p>GDG on Campus는 대학생이 기술을 탐구하고, 동료와 결과물을 만들며, 더 넓은 개발자 커뮤니티와 연결되는 프로그램입니다.</p>
-            <Link className="text-link" href="/about">커뮤니티 알아보기 <span aria-hidden="true">→</span></Link>
-          </div>
-        </div>
+      <section className="section container home-projects">
+        <ProjectCollection compact />
       </section>
 
-      <section className="section container">
-        <SectionHeading eyebrow="What we do" title="배움이 결과물이 되는 네 가지 방식" description="GDGOC Sahmyook의 활동은 배우고, 만들고, 나누고, 연결되는 하나의 흐름입니다." />
+      <section className="section container home-community">
+        <SectionHeading title="GDGOC Sahmyook에서 하는 일" action={{ href: "/about/", label: "커뮤니티 소개" }} />
         <div className="value-bento">
           {values.map(([title, text, color]) => (
             <article className={`value-card value-${color}`} key={title}>
@@ -70,19 +66,12 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section container home-projects">
-        <ProjectCollection compact />
-      </section>
-
       <section className="section container people-callout">
         <div>
-          <p className="eyebrow">People make community</p>
-          <h2>코드보다 먼저,<br />사람을 연결합니다.</h2>
+          <h2>함께 활동하는 구성원</h2>
+          <p>서로 다른 관심사와 경험을 가진 학생들이 모여 질문을 나누고 함께 성장합니다.</p>
         </div>
-        <div>
-          <p>서로 다른 관심사와 경험을 가진 구성원이 질문을 나누고 함께 성장합니다. 공개에 동의한 구성원의 이야기를 만나보세요.</p>
-          <Link className="button button-secondary" href="/people">Meet the community <span aria-hidden="true">→</span></Link>
-        </div>
+        <Link className="button button-secondary" href="/people/">구성원 보기 <span aria-hidden="true">→</span></Link>
       </section>
 
       <section className="section container"><RecruitmentProvider><RecruitmentPanel compact /></RecruitmentProvider></section>
