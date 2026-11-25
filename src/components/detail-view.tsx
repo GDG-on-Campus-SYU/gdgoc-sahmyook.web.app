@@ -25,7 +25,7 @@ export function ActivityDetail() {
     <article className="detail-page container">
       <Link className="back-link" href={listHref}>← 활동 목록</Link>
       <header className="detail-header">
-        <div className="card-meta"><span>{activity.category}</span><span>{activity.status}</span></div>
+        <div className="card-meta"><span className="card-category">{activity.category}</span><span className="card-status">{activity.status}</span></div>
         <h1>{activity.title}</h1>
         <p>{activity.summary}</p>
         <dl className="detail-meta">
@@ -55,21 +55,21 @@ export function ProjectDetail() {
   if (!project) return <DetailMissing href={listHref} label="프로젝트 목록" />;
 
   const sections = [
-    ["Description", project.description], ["Problem", project.problem], ["Solution", project.solution], ["Result", project.result],
+    ["프로젝트 소개", project.description], ["해결할 문제", project.problem], ["해결 과정", project.solution], ["결과", project.result],
   ].filter(([, value]) => value);
 
   return (
     <article className="detail-page container">
       <Link className="back-link" href={listHref}>← 프로젝트 목록</Link>
       <header className="detail-header">
-        <p className="eyebrow">Project · <GenerationName id={project.generation} /></p>
+        {project.generation && <p className="project-generation"><GenerationName id={project.generation} /></p>}
         <h1>{project.title}</h1>
         <p>{project.summary}</p>
         {Boolean(project.techStack?.length) && <ul className="tag-list">{project.techStack?.map((item) => <li key={item}>{item}</li>)}</ul>}
       </header>
       <div className="detail-content">
         {sections.length ? sections.map(([title, value]) => <section key={title}><h2>{title}</h2><p>{value}</p></section>) : <p>검증된 프로젝트 자료를 정리한 뒤 공개합니다.</p>}
-        {Boolean(project.members?.length) && <section><h2>Team</h2><ul className="tag-list" aria-label="프로젝트 참여 구성원">{project.members?.map((member) => <li key={member}>{member}</li>)}</ul></section>}
+        {Boolean(project.members?.length) && <section><h2>참여 구성원</h2><ul className="tag-list" aria-label="프로젝트 참여 구성원">{project.members?.map((member) => <li key={member}>{member}</li>)}</ul></section>}
         <div className="detail-actions">
           {safeHref(project.github) && <a className="button" href={safeHref(project.github)!} target="_blank" rel="noreferrer" onClick={() => trackAnalyticsEvent("project_github_click")}>GitHub ↗</a>}
           {safeHref(project.demo) && <a className="button button-secondary" href={safeHref(project.demo)!} target="_blank" rel="noreferrer">Live demo ↗</a>}

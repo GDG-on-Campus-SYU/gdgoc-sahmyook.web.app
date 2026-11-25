@@ -42,6 +42,6 @@ GitHub Actions 배포에는 Firebase 서비스 계정 JSON을 `FIREBASE_SERVICE_
 
 ## 코드와 자산의 권리
 
-이 저장소는 공개되어 있어도 오픈소스 라이선스를 부여하지 않습니다. 별도 허가 없이 코드나 GDGOC Sahmyook 브랜드 자산을 재사용할 수 없습니다. 공개 화면은 [Google Sans](src/app/fonts/google-sans-v70/OFL.txt)와 [Noto Sans KR](src/app/fonts/noto-sans-kr-v39/OFL.txt)을 사용하고, 관리자 화면은 [Pretendard](src/app/fonts/pretendard-v1.3.9/LICENSE.txt)를 사용합니다. 글꼴은 각각의 SIL Open Font License에 따라 자체 호스팅합니다.
+이 저장소는 공개되어 있어도 오픈소스 라이선스를 부여하지 않습니다. 별도 허가 없이 코드나 GDGOC Sahmyook 브랜드 자산을 재사용할 수 없습니다. 공개·관리자 화면의 [Pretendard](src/app/fonts/pretendard-v1.3.9/LICENSE.txt)는 SIL Open Font License에 따라 자체 호스팅합니다.
 
 정적 Hosting에서 Firestore에 새로 추가한 상세 콘텐츠를 배포 없이 열 수 있도록 상세 URL은 `/activities/detail?slug=...`와 `/projects/detail?slug=...` 형식을 사용합니다.

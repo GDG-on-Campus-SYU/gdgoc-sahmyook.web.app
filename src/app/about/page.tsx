@@ -30,14 +30,13 @@ export default function AboutPage() {
       </section>
       <section className="section surface-section">
         <div className="container">
-          <div className="section-heading"><div><p className="eyebrow">Community values</p><h2>함께할 때 지키는 약속</h2></div></div>
+          <div className="section-heading"><h2>함께할 때 지키는 약속</h2></div>
           <div className="principle-list">
-            {values.map(([title, text], index) => <article key={title}><span>{String(index + 1).padStart(2, "0")}</span><h3>{title}</h3><p>{text}</p></article>)}
+            {values.map(([title, text]) => <article key={title}><h3>{title}</h3><p>{text}</p></article>)}
           </div>
         </div>
       </section>
       <section className="section container identity-statement">
-        <p className="eyebrow">Our identity</p>
         <blockquote>“실제 구성원, 실제 활동, 실제 결과물이<br />GDGOC Sahmyook의 정체성이 됩니다.”</blockquote>
         <p>이 웹사이트는 활동이 끝나도 기록이 사라지지 않고 다음 구성원에게 이어지는 커뮤니티 아카이브를 지향합니다.</p>
       </section>

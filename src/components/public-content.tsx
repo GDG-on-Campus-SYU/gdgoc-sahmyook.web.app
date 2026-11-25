@@ -117,14 +117,16 @@ export function ActivityCollection({ compact = false, filters = allArchiveItems,
     <div>
       {cached && <CachedNotice onRetry={retry} />}
       {onFilter && (
-        <>
-          <GenerationSelect label="활동 기수" value={generation} options={generations} onChange={(value) => onFilter({ generation: value })} />
-          <label className="generation-filter mobile-filter"><span>활동 카테고리</span><select value={category} onChange={(event) => onFilter({ category: event.target.value })}>{activityCategories.map((item) => <option key={item} value={item}>{item === "All" ? "전체" : item}</option>)}</select></label>
-          <div className="filter-row desktop-filter" role="group" aria-label="활동 카테고리 필터">
-            {activityCategories.map((item) => <button key={item} className={category === item ? "active" : ""} aria-pressed={category === item} onClick={() => onFilter({ category: item })}>{item === "All" ? "전체" : item}</button>)}
+        <div className="archive-toolbar">
+          <div className="archive-controls">
+            <GenerationSelect label="활동 기수" value={generation} options={generations} onChange={(value) => onFilter({ generation: value })} />
+            <label className="generation-filter mobile-filter"><span>활동 카테고리</span><select value={category} onChange={(event) => onFilter({ category: event.target.value })}>{activityCategories.map((item) => <option key={item} value={item}>{item === "All" ? "전체" : item}</option>)}</select></label>
+            <div className="filter-row desktop-filter" role="group" aria-label="활동 카테고리 필터">
+              {activityCategories.map((item) => <button type="button" key={item} className={category === item ? "active" : ""} aria-pressed={category === item} onClick={() => onFilter({ category: item })}>{item === "All" ? "전체" : item}</button>)}
+            </div>
           </div>
           <FilterSummary label="활동" count={filtered.length} filters={filters} onFilter={onFilter} />
-        </>
+        </div>
       )}
       {visibleItems.length ? (
         <div className="activity-grid">
@@ -132,12 +134,12 @@ export function ActivityCollection({ compact = false, filters = allArchiveItems,
             return (
               <article className="activity-card" key={activity.id}>
                 <div className="card-body">
-                  <div className="card-meta"><span>{activity.category}</span><span>{activity.status}</span></div>
+                  <div className="card-meta"><span className="card-category">{activity.category}</span><span className="card-status">{activity.status}</span></div>
                   <h3>{activity.title}</h3>
                   <p>{activity.summary}</p>
                   <div className="card-footer">
                     <span>{activity.startDate || (compact ? <GenerationName id={activity.generation} /> : generations.find(([id]) => id === activity.generation)?.[1])}</span>
-                    <Link href={archiveHref("activities", activity, filters)} aria-label={`${activity.title} 자세히 보기`}>자세히 보기 <span aria-hidden="true">→</span></Link>
+                    <Link className="text-link" href={archiveHref("activities", activity, filters)} aria-label={`${activity.title} 자세히 보기`}>자세히 보기 <span aria-hidden="true">→</span></Link>
                   </div>
                 </div>
               </article>
@@ -165,13 +167,15 @@ export function ProjectCollection({ compact = false, filters = allArchiveItems, 
   return (
     <div>
       {compact && (visibleItems.length > 0
-        ? <SectionHeading eyebrow="Projects" title="아이디어를 세상에 꺼내놓는 일" action={{ href: "/projects/", label: "모든 프로젝트" }} />
+        ? <SectionHeading title="프로젝트" action={{ href: "/projects/", label: "모든 프로젝트" }} />
         : <h2>프로젝트</h2>)}
       {cached && <CachedNotice onRetry={retry} />}
-      {onFilter && <>
-        <GenerationSelect label="프로젝트 기수" value={generation} options={generations} onChange={(value) => onFilter({ generation: value })} />
+      {onFilter && <div className="archive-toolbar">
+        <div className="archive-controls">
+          <GenerationSelect label="프로젝트 기수" value={generation} options={generations} onChange={(value) => onFilter({ generation: value })} />
+        </div>
         <FilterSummary label="프로젝트" count={filtered.length} filters={filters} onFilter={onFilter} />
-      </>}
+      </div>}
       {!visibleItems.length && (compact
         ? <p className="compact-empty" role="status">아직 공개된 프로젝트가 없습니다.</p>
         : <div className="empty-state">
@@ -184,7 +188,7 @@ export function ProjectCollection({ compact = false, filters = allArchiveItems, 
         return (
           <article className="project-card" key={project.id}>
             <div className="project-copy">
-              <p className="eyebrow">Project · {compact ? <GenerationName id={project.generation} /> : generations.find(([id]) => id === project.generation)?.[1]}</p>
+              {project.generation && <p className="project-generation">{compact ? <GenerationName id={project.generation} /> : generations.find(([id]) => id === project.generation)?.[1]}</p>}
               <Heading>{project.title}</Heading>
               <p>{project.summary}</p>
               {Boolean(project.techStack?.length) && <ul className="tag-list" aria-label="사용 기술">{project.techStack?.map((tech) => <li key={tech}>{tech}</li>)}</ul>}
@@ -299,7 +303,7 @@ export function RecruitmentPanel({ compact = false }: { compact?: boolean }) {
       {(compact || effectiveStatus === "open") && <div className="button-row">
         {detailsLink}
         {canApply && applyUrl && (
-          <a className="button button-light" href={applyUrl} target="_blank" rel="noopener noreferrer" onClick={(event) => {
+          <a className="button" href={applyUrl} target="_blank" rel="noopener noreferrer" onClick={(event) => {
             if (effectiveRecruitmentStatus(recruitment) !== "open") event.preventDefault();
             else trackAnalyticsEvent("recruit_apply_click");
           }}>지원하기 <span aria-hidden="true">↗</span></a>
@@ -336,7 +340,7 @@ export function RecruitmentRoles() {
 
 export function EmptyState({ title, text, headingLevel = "h2" }: { title: string; text: string; headingLevel?: "h2" | "h3" }) {
   const Heading = headingLevel;
-  return <div className="empty-state" role="status"><span aria-hidden="true">＋</span><Heading>{title}</Heading><p>{text}</p></div>;
+  return <div className="empty-state" role="status"><Heading>{title}</Heading><p>{text}</p></div>;
 }
 
 function CollectionLoading({ text }: { text: string }) {

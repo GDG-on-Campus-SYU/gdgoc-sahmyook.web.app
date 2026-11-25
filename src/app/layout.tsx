@@ -3,8 +3,7 @@ import { Suspense } from "react";
 import { Analytics } from "@/components/analytics";
 import { SiteFooter, SiteHeader } from "@/components/site-shell";
 import { chapterOpenGraph } from "@/lib/page-metadata";
-import "./fonts/google-sans-v70/google-sans.css";
-import "./fonts/noto-sans-kr-v39/noto-sans-kr.css";
+import "./fonts/pretendard-v1.3.9/pretendardvariable-dynamic-subset.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
