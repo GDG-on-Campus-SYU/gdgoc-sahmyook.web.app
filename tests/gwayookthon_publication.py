@@ -1,5 +1,6 @@
 import runpy
 import unittest
+from datetime import timedelta
 from unittest.mock import Mock, call
 
 publisher = runpy.run_path("scripts/publish-gwayookthon.py")
@@ -38,6 +39,53 @@ class PublicationTest(unittest.TestCase):
         ]:
             with self.subTest(existing=existing, metadata=metadata), self.assertRaises(RuntimeError):
                 requires_creation(existing, metadata, payload)
+
+
+class ClosureTest(unittest.TestCase):
+    def setUp(self):
+        self.activity = Mock()
+        self.audit = Mock()
+        self.transaction = Mock()
+        self.history = {"createdBy": "original-author", "updatedBy": "last-editor"}
+        self.audit.get.return_value.to_dict.return_value = self.history
+        self.existing = {
+            **publisher["EVENT_FIELDS"], **publisher["ANNOUNCEMENT"], "links": [publisher["SOURCE"]],
+            "published": True, "order": 4, "createdAt": "creation-time", "other": "preserve",
+        }
+        self.activity.get.return_value.to_dict.return_value = self.existing
+
+    def close(self, now=publisher["END"]):
+        return publisher["close_activity"](self.transaction, self.activity, self.audit, "editor", "timestamp", now)
+
+    def test_close_preserves_other_fields_and_is_idempotent(self):
+        self.assertEqual(self.close(), "closed")
+        self.activity.get.assert_called_once_with(transaction=self.transaction)
+        self.audit.get.assert_called_once_with(transaction=self.transaction)
+        self.assertEqual(self.transaction.mock_calls, [
+            call.update(self.activity, {**publisher["CLOSED_RECORD"], "updatedAt": "timestamp"}),
+            call.update(self.audit, {"updatedBy": "editor"}),
+        ])
+        self.transaction.reset_mock()
+        self.existing.update(publisher["CLOSED_RECORD"])
+        self.assertEqual(self.close(), "already closed")
+        self.assertEqual(self.transaction.mock_calls, [])
+
+    def test_close_refuses_early_or_changed_announcements(self):
+        with self.assertRaises(RuntimeError):
+            self.close(publisher["END"] - timedelta(seconds=1))
+        for field in [*publisher["EVENT_FIELDS"], *publisher["ANNOUNCEMENT"], "links", "published", "archivedAt"]:
+            with self.subTest(field=field), self.assertRaises(RuntimeError):
+                self.activity.get.return_value.to_dict.return_value = {**self.existing, field: "changed"}
+                self.close()
+        self.activity.get.return_value.to_dict.return_value = None
+        with self.assertRaises(RuntimeError):
+            self.close()
+        self.activity.get.return_value.to_dict.return_value = self.existing
+        for history in [None, {"createdBy": "user"}, {"updatedBy": "user"}]:
+            with self.subTest(history=history), self.assertRaises(RuntimeError):
+                self.audit.get.return_value.to_dict.return_value = history
+                self.close()
+        self.assertEqual(self.transaction.mock_calls, [])
 
 
 if __name__ == "__main__":
